@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive kanban</title>
+    <script src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src='http://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js'></script>
+    <script src="kanban.js"></script>
+    <link rel="stylesheet" href="kanban.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+        integrity="sha512-SfTiTlX6kk+qitfevl/7LibUOeJWlt9rbyDn92a1DqWOw9vWG2MFoays0sgObmWazO5BQPiFucnnEAjpAB+/Sw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="http://mozilla.github.io/foundation-icons/assets/foundation-icons.css" type="text/css" rel="stylesheet">
+    <style>
+        body {
+            height: 100vh;
+        }
+    </style>
+    <script>
+        $(function () {
+            var data = [
+                {
+                    title: 'Une autre chose à faire. Io fa natao lavabe',
+                    header: 'todiscuss'
+                },
+                {
+                    title: 'Chose à faire',
+                    header: 'todiscuss'
+                },
+                {
+                    title: 'Addition',
+                    header: 'todiscuss'
+                },
+                {
+                    title: 'Chose à faire',
+                    header: 'done'
+                },
+                {
+                    title: 'Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte',
+                    header: 'todo'
+                }
+            ];
+            var headers = [
+                { id: 'todiscuss', label: 'A discuter' },
+                { id: 'todo', label: 'A faire' },
+                { id: 'totest', label: 'Phase de teste' },
+                { id: 'done', label: 'Terminé' },
+                { id: 'validated', label: 'Validé' },
+            ]
+            $('#kanban').kanban({
+                headers,
+                data,
+                prependOnly: false,
+                editable: true,
+                onCardClick(clickedData) {
+                    console.log('Rinelfi clicked', clickedData);
+                },
+                onEditCardOpen(editData) {
+                    console.log('Rinelfi edit prompt at', editData);
+                },
+                onCreateCardOpen(column) {
+                    console.log('Rinelfi create prompt at', column);
+                },
+                onCardUpdate(updated) {
+                    console.log('Rinelfi update at', updated);
+                },
+                onCardInsert(inserted) {
+                    console.log('Rinelfi create at', inserted);
+                },
+                onCardDrop(dropped) {
+                    console.log('Rinelfi drop at', dropped);
+                }
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <div id="debugger"></div>
+    <div id="kanban"></div>
+</body>
+
+</html>
