@@ -61,8 +61,8 @@ html, body {
 }
 
 .kanban-list-wrapper {
-    width: 272px;
-    min-width: 272px;
+    width: 287px;
+    min-width: 287px;
     height: 100%;
 }
 
@@ -192,12 +192,11 @@ html, body {
 
 .list-card {
     background-color: var(--ds-surface-raised, #fff);
-    border-radius: 3px;
+    border-radius: 8px;
     box-shadow: var(--ds-shadow-raised, 0 1px 1px #091e4240, 0 0 1px #091e424f);
     color: var(--ds-text, #172b4d);
     cursor: pointer;
     display: block;
-    /* margin-bottom: 8px; */
     max-width: 300px;
     min-height: 20px;
     position: relative;
@@ -225,7 +224,7 @@ html, body {
 
 .list-card-details {
     overflow: hidden;
-    padding: 8px 8px 4px 12px;
+    padding: 5px 5px 0;;
     position: relative;
     border-radius: 8px;
     z-index: 10;
@@ -318,10 +317,6 @@ textarea.list-card-composer-textarea:focus {
     width: 32px;
 }
 
-.icon-close:before {
-    content: "\e920";
-}
-
 .kanban-overlay textarea.list-card-composer-textarea {
     height: 100%;
 }
@@ -409,7 +404,7 @@ textarea.list-card-composer-textarea:focus {
     color: #f39c12;
 }
 
-@media only screen and (max-width: 750px) {
+@media only screen and (max-width: 770px) {
     .kanban-list-wrapper {
         scroll-snap-align: center;
     }

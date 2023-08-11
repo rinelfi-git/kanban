@@ -4,5 +4,7 @@
     "list": "liste",
     "move": "déplacer",
     "move the card": "déplacer la carte",
-    "enter a title for this card": "saisissez un titre pour cette carte"
+    "enter a title for this card": "saisissez un titre pour cette carte",
+    "add a card": "ajouter une carte",
+    "current": "courant"
 }

@@ -80,9 +80,7 @@
         container.html(`
         <div class="list-card js-composer">
             <div class="list-card-details u-clearfix">
-                <div class="list-card-labels u-clearfix js-list-card-composer-labels"></div>
                 <textarea class="list-card-composer-textarea js-card-title" dir="auto" placeholder="${translate('enter a title for this card')}…">${data.title}</textarea>
-                <div class="list-card-members js-list-card-composer-members"></div>
             </div>
         </div>
         <div class="cc-controls u-clearfix">
@@ -220,13 +218,13 @@
             <label class="kanban-card-move-label">${translate('list').ucfirst()}</label>
             <div class="select">
                 <select class="kanban-target-choice" name="list-map">
-                    ${headers.map(function (oneHeaderMap) { return `<option value="${oneHeaderMap.id}" ${oneHeaderMap.id === selectedData.header ? 'selected="selected"' : ''}>${oneHeaderMap.label}</option>`; }).join('')}
+                    ${headers.map(function (oneHeaderMap) { return `<option value="${oneHeaderMap.id}" ${oneHeaderMap.id === selectedData.header ? 'selected="selected"' : ''}>${oneHeaderMap.label} ${oneHeaderMap.id === selectedData.header ? `(${translate('current')})` : ''}</option>`; }).join('')}
                 </select>
             </div>
             <label class="kanban-card-move-label">${translate('position').ucfirst()}</label>
             <div class="select">
                 <select class="kanban-target-choice" name="position-map">
-                    ${Array.from({ length: matrixLengthInHeader }, (_, index) => index).map(oneArrayMap => `<option value="${oneArrayMap}" ${oneArrayMap === indexOfData ? 'selected="selected"' : ''}>${oneArrayMap + 1}</option>`).join('')}
+                    ${Array.from({ length: matrixLengthInHeader }, (_, index) => index).map(oneArrayMap => `<option value="${oneArrayMap}" ${oneArrayMap === indexOfData ? 'selected="selected"' : ''}>${oneArrayMap + 1} ${oneArrayMap === indexOfData ? `(${translate('current')})` : ''}</option>`).join('')}
                 </select>
             </div>
             <input class="nch-button nch-button--primary wide js-submit" type="submit" value="${translate('move').ucfirst()}">
@@ -235,7 +233,7 @@
         moveCardContext.on('change', '[name=list-map]', function () {
             var newLength = matrixData[this.value].length;
             moveCardContext.find('[name=position-map]').empty().html(`
-                ${Array.from({ length: this.value === selectedData.header ? newLength : newLength + 1 }, (_, index) => index).map(oneArrayMap => `<option value="${oneArrayMap}" ${this.value === selectedData.header && oneArrayMap === indexOfData ? 'selected="selected"' : ''}>${oneArrayMap + 1}</option>`).join('')}
+                ${Array.from({ length: this.value === selectedData.header ? newLength : newLength + 1 }, (_, index) => index).map(oneArrayMap => `<option value="${oneArrayMap}" ${this.value === selectedData.header && oneArrayMap === indexOfData ? 'selected="selected"' : ''}>${oneArrayMap + 1} ${this.value === selectedData.header && oneArrayMap === indexOfData ? `(${translate('current')})` : ''}</option>`).join('')}
             `);
         });
         return moveCardContext;
@@ -384,15 +382,15 @@
             <div class="card-composer">
                 <div class="list-card js-composer">
                     <div class="list-card-details u-clearfix">
-                        <div class="list-card-labels u-clearfix js-list-card-composer-labels"></div>
                         <textarea class="list-card-composer-textarea js-card-title" dir="auto" placeholder="${translate('enter a title for this card')}…"></textarea>
-                        <div class="list-card-members js-list-card-composer-members"></div>
                     </div>
                 </div>
                 <div class="cc-controls u-clearfix">
                     <div class="cc-controls-section">
-                        <input class="nch-button nch-button--primary confirm mod-compact js-add-card" type="submit" value="Ajouter une carte" data-column="${columnId}" data-action="insert">
-                        <a class="icon-lg icon-close dark-hover js-cancel" href="#"></a>
+                        <input class="nch-button nch-button--primary confirm mod-compact js-add-card" type="submit" value="${translate('add a card').ucfirst()}" data-column="${columnId}" data-action="insert">
+                        <a class="icon-lg icon-close dark-hover js-cancel" href="!#">
+                            <span class="fa fa-times"></span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -423,7 +421,7 @@
                 self.height(scrollHeight);
             });
             wrapperDom.find('.kanban-new-card-button').hide();
-            wrapperDom.find('.icon-close').on('click', function (event) {
+            wrapperDom.find('.js-cancel').on('click', function (event) {
                 event.preventDefault();
                 wrapperDom.trigger('editor-close');
             });
