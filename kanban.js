@@ -81,7 +81,7 @@
         <div class="list-card js-composer">
             <div class="list-card-details u-clearfix">
                 <div class="list-card-labels u-clearfix js-list-card-composer-labels"></div>
-                <textarea class="list-card-composer-textarea js-card-title" dir="auto" placeholder="Saisissez un titre pour cette carte…">${data.title}</textarea>
+                <textarea class="list-card-composer-textarea js-card-title" dir="auto" placeholder="${translate('enter a title for this card')}…">${data.title}</textarea>
                 <div class="list-card-members js-list-card-composer-members"></div>
             </div>
         </div>
@@ -385,7 +385,7 @@
                 <div class="list-card js-composer">
                     <div class="list-card-details u-clearfix">
                         <div class="list-card-labels u-clearfix js-list-card-composer-labels"></div>
-                        <textarea class="list-card-composer-textarea js-card-title" dir="auto" placeholder="Saisissez un titre pour cette carte…"></textarea>
+                        <textarea class="list-card-composer-textarea js-card-title" dir="auto" placeholder="${translate('enter a title for this card')}…"></textarea>
                         <div class="list-card-members js-list-card-composer-members"></div>
                     </div>
                 </div>
