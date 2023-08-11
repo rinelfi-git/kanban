@@ -32,8 +32,8 @@ Il faut tout de même noter que les options regroupent les paramètres d'initial
 
 | Option | Type | Description |  
 | :----- |:---- | :---------- |
-| headers | `{id: any, label: string}[]` | Liste d'objet indiquant la liste des conteneurs, comme **Todo** ou **Test** de la figure 1.<br>L'`id` soit être unique pour toutes les entêtes ; pour le `label` vous êtes libres de mettre ce que vous voulez |
-| data | `{title: string, header: any}[]` | Une liste d'objet regroupant toutes les données à afficher par catégorie de conteneur. Le `title` indique simplement le texte à afficher alors que `header` fait la liaison à l'entête et permet de bien placer la donnée |
+| headers | ```{id: any, label: string}[]``` | Liste d'objet indiquant la liste des conteneurs, comme **Todo** ou **Test** de la figure 1.<br>L'`id` soit être unique pour toutes les entêtes ; pour le `label` vous êtes libres de mettre ce que vous voulez |
+| data | ```{title: string, header: any}[]``` | Une liste d'objet regroupant toutes les données à afficher par catégorie de conteneur. Le `title` indique simplement le texte à afficher alors que `header` fait la liaison à l'entête et permet de bien placer la donnée |
 
 ![todo, done](<Screenshot from 2023-08-11 21-53-15.png>)  
 *figure 1*
