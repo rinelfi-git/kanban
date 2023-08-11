@@ -258,6 +258,8 @@
                 if (newIndex >= newDataMatrix[newColumn].length) newDataMatrix[newColumn].push(data);
                 else newDataMatrix[newColumn].splice(newIndex, 0, data);
                 _dataMatrix = newDataMatrix;
+                Context.find(`.card-counter[data-column=${oldColumn}]`).text(newDataMatrix[oldColumn].length);
+                Context.find(`.card-counter[data-column=${newColumn}]`).text(newDataMatrix[newColumn].length);
                 if (typeof settings.onCardDrop === 'function') settings.onCardDrop({ data, origin: oldColumn, target: newColumn });
             }
         }
@@ -273,7 +275,7 @@
             });
             var kanbanListHeaderDom = $('<div>', {
                 class: 'kanban-list-header',
-                text: oneHeader.label
+                html: `${oneHeader.label} ${settings.showCardNumber ? `(<span data-column="${oneHeader.id}" class="card-counter">${settings.data.filter(oneDataFilter => oneDataFilter.header === oneHeader.id).length}</span>)` : ''}`
             });
             var listCardDom = $('<div>', {
                 class: 'kanban-list-cards'
@@ -463,6 +465,7 @@
                             title: textArea.val()
                         };
                         _dataMatrix[column].push(newData);
+                        Context.find(`.card-counter[data-column=${column}]`).text(_dataMatrix[column].length);
                         if (typeof settings.onCardInsert === 'function') settings.onCardInsert(newData);
                         bindDragAndDropEvents(Context, dragAndDropManager);
                         break;
