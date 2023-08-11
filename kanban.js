@@ -1,9 +1,31 @@
 (function ($, W) {
+    String.prototype.ucfirst = function () {
+        return this.charAt(0).toUpperCase() + this.slice(1);
+    };
+
     var _dragSubstituteDom = $('<div>', {
         class: 'kanban-list-card-detail substitute',
         width: outerWidth,
         height: outerHeight
     });
+    var _dictionnary = {};
+    var _currentLanguage;
+
+    function loadTranslation(language) {
+        _currentLanguage = language;
+        return new Promise(function (resolve) {
+            $.getJSON(`language/${language}.json`, function (data) {
+                _dictionnary[language] = data;
+                resolve();
+            })
+        });
+    }
+
+    function translate(keyword) {
+        console.log('dictionnary', _dictionnary, keyword);
+        if (_dictionnary[_currentLanguage] && _dictionnary[_currentLanguage][keyword]) return _dictionnary[_currentLanguage][keyword];
+        return keyword;
+    }
 
     function isPointerInsideOf(element, position) {
         var bcr = element.getBoundingClientRect();
@@ -65,7 +87,7 @@
         </div>
         <div class="cc-controls u-clearfix">
             <div class="cc-controls-section">
-                <input class="nch-button nch-button--primary confirm mod-compact js-add-card" type="submit" value="Enegistrer" data-action="update" data-column="${options.column}" data-target="${options.index}">
+                <input class="nch-button nch-button--primary confirm mod-compact js-add-card" type="submit" value="${translate('save').ucfirst()}" data-action="update" data-column="${options.column}" data-target="${options.index}">
             </div>
         </div>
         `);
@@ -194,20 +216,20 @@
             class: 'kanban-move-card'
         });
         moveCardContext.empty().html(`
-            <h2 class="kanban-card-move-header">Déplacer la carte</h2>
-            <label class="kanban-card-move-label">Liste</label>
+            <h2 class="kanban-card-move-header">${translate('move the card').ucfirst()}</h2>
+            <label class="kanban-card-move-label">${translate('list').ucfirst()}</label>
             <div class="select">
                 <select class="kanban-target-choice" name="list-map">
                     ${headers.map(function (oneHeaderMap) { return `<option value="${oneHeaderMap.id}" ${oneHeaderMap.id === selectedData.header ? 'selected="selected"' : ''}>${oneHeaderMap.label}</option>`; }).join('')}
                 </select>
             </div>
-            <label class="kanban-card-move-label">Position</label>
+            <label class="kanban-card-move-label">${translate('position').ucfirst()}</label>
             <div class="select">
                 <select class="kanban-target-choice" name="position-map">
                     ${Array.from({ length: matrixLengthInHeader }, (_, index) => index).map(oneArrayMap => `<option value="${oneArrayMap}" ${oneArrayMap === indexOfData ? 'selected="selected"' : ''}>${oneArrayMap + 1}</option>`).join('')}
                 </select>
             </div>
-            <input class="nch-button nch-button--primary wide js-submit" type="submit" value="Déplacer">
+            <input class="nch-button nch-button--primary wide js-submit" type="submit" value="${translate('move').ucfirst()}">
         `);
 
         moveCardContext.on('change', '[name=list-map]', function () {
@@ -219,20 +241,7 @@
         return moveCardContext;
     }
 
-    $.fn.kanban = function (options = {}) {
-        var Self = this;
-        Self.append($('<div>', {
-            class: 'kanban-container'
-        }));
-        var _dataMatrix = {};
-        var defaultOptions = {
-            headers: [],
-            data: [],
-            headerEditable: true,
-            prependOnly: false,
-            editable: true
-        };
-        var settings = $.extend(true, {}, defaultOptions, options);
+    function loadKanban(Context, settings, _dataMatrix) {
         var dragAndDropManager = {
             prependOnly: settings.prependOnly,
             onCardDrop(self, oldIndex) {
@@ -276,7 +285,7 @@
             });
             var addNewCardButtonDom = $('<button>', {
                 class: 'kanban-new-card-button',
-                html: '<span class="fa fa-plus"></span> Ajouter une carte',
+                html: `<span class="fa fa-plus"></span> ${translate('add a new card').ucfirst()}`,
                 data: {
                     column: oneHeader.id
                 }
@@ -285,9 +294,9 @@
                 .append(kanbanListHeaderDom)
                 .append(listCardDom)
                 .append(composerContainerDom.append(addNewCardButtonDom));
-            Self.find('.kanban-container').append(kanbanListWrapperDom.append(kanbanListContentDom));
+            Context.find('.kanban-container').append(kanbanListWrapperDom.append(kanbanListContentDom));
             _dataMatrix[oneHeader.id] = [];
-        }.bind(this));
+        }.bind(Context));
 
         // Ajouter les data
         $.each(settings.data, function (_, dataLine) {
@@ -295,10 +304,10 @@
             listCardDom.append(buildCard({ column: dataLine.header, text: dataLine.title, editable: settings.editable }));
             _dataMatrix[dataLine.header].push(dataLine);
         });
-        bindDragAndDropEvents(this, dragAndDropManager);
+        bindDragAndDropEvents(Context, dragAndDropManager);
 
         // Événements
-        this.on('mouseover', '.kanban-list-card-detail', function () {
+        Context.on('mouseover', '.kanban-list-card-detail', function () {
             $(this).addClass('active-card');
         }).on('mouseout', '.kanban-list-card-detail', function () {
             $(this).removeClass('active-card');
@@ -319,10 +328,10 @@
             if (typeof settings.onEditCardOpen === 'function') settings.onEditCardOpen(data);
 
             var parentCardDom = self.parents('.kanban-list-card-detail');
-            var overlayDom = Self.find('.kanban-overlay');
-            var scrollLeft = Self.scrollLeft();
-            Self.css('overflow-x', 'hidden');
-            Self.scrollLeft(scrollLeft);
+            var overlayDom = Context.find('.kanban-overlay');
+            var scrollLeft = Context.scrollLeft();
+            Context.css('overflow-x', 'hidden');
+            Context.scrollLeft(scrollLeft);
             overlayDom.append(buildCardEditor({
                 data,
                 position: {
@@ -352,18 +361,18 @@
             var data = _dataMatrix[columnId][cardIndex];
             if (typeof settings.onMoveCardOpen === 'function') settings.onMoveCardOpen(data);
             console.log(cardIndex);
-            var overlayDom = Self.find('.kanban-overlay');
-            var scrollLeft = Self.scrollLeft();
-            Self.css('overflow-x', 'hidden');
-            Self.scrollLeft(scrollLeft);
+            var overlayDom = Context.find('.kanban-overlay');
+            var scrollLeft = Context.scrollLeft();
+            Context.css('overflow-x', 'hidden');
+            Context.scrollLeft(scrollLeft);
             var moveContextDom = buildCardMoveContext(settings.headers, data, _dataMatrix)
             overlayDom.append(moveContextDom).addClass('active');
-            moveContextDom.on('click', '.js-submit', function(){
+            moveContextDom.on('click', '.js-submit', function () {
                 var cardParentDom = self.parents('.kanban-list-card-detail');
                 var targetColumn = moveContextDom.find('[name=list-map]').val();
                 var targetLine = parseInt(moveContextDom.find('[name=position-map]').val());
-                var listCardContainerDom = Self.find(`.kanban-list-wrapper[data-column=${targetColumn}] .kanban-list-cards`);
-                if(targetLine === 0 && listCardContainerDom.children().eq(targetLine).length === 0) listCardContainerDom.append(cardParentDom);
+                var listCardContainerDom = Context.find(`.kanban-list-wrapper[data-column=${targetColumn}] .kanban-list-cards`);
+                if (targetLine === 0 && listCardContainerDom.children().eq(targetLine).length === 0) listCardContainerDom.append(cardParentDom);
                 else listCardContainerDom.children().eq(targetLine).before(cardParentDom);
                 dragAndDropManager.onCardDrop(cardParentDom, cardIndex);
                 overlayDom.removeClass('active').empty();
@@ -394,7 +403,7 @@
             wrapperDom.on('editor-close', function () {
                 wrapperDom.find('.card-composer').remove();
                 wrapperDom.find('.kanban-new-card-button').css('display', '');
-                Self.off('click', checkCloseEditor);
+                Context.off('click', checkCloseEditor);
             });
             function checkCloseEditor(event) {
                 var cardComposerDom = wrapperDom.find('.card-composer');
@@ -403,7 +412,7 @@
                     wrapperDom.trigger('editor-close');
                 }
             }
-            $(Self).on('click', checkCloseEditor);
+            $(Context).on('click', checkCloseEditor);
             $('.list-card-composer-textarea').on('input', function () {
                 var self = $(this);
                 self.height(0);
@@ -425,7 +434,7 @@
             self.empty();
             $('.card-composer').remove();
             $('.kanban-list-card-detail[data-column]:hidden').css('display', '');
-            Self.css('overflow-x', '');
+            Context.css('overflow-x', '');
         }).on('keydown', '.card-composer', function (event) {
             if (event.originalEvent.key === 'Enter') {
                 event.preventDefault();
@@ -457,17 +466,41 @@
                         };
                         _dataMatrix[column].push(newData);
                         if (typeof settings.onCardInsert === 'function') settings.onCardInsert(newData);
-                        bindDragAndDropEvents(Self, dragAndDropManager);
+                        bindDragAndDropEvents(Context, dragAndDropManager);
                         break;
                 }
                 $('.js-cancel').trigger('click');
                 $('.kanban-overlay.active').trigger('click');
             }
         });
-        this.addClass('kanban-initialized');
-        this.append('<div class="kanban-overlay"></div>');
+        Context.addClass('kanban-initialized');
+        Context.append('<div class="kanban-overlay"></div>');
         $(W).resize(function () {
         });
+    }
+
+    $.fn.kanban = function (options = {}) {
+        var Self = this;
+        Self.append($('<div>', {
+            class: 'kanban-container'
+        }));
+        var _dataMatrix = {};
+        var defaultOptions = {
+            headers: [],
+            data: [],
+            headerEditable: true,
+            prependOnly: false,
+            editable: true,
+            language: 'en'
+        };
+        var settings = $.extend(true, {}, defaultOptions, options);
+        if (settings.language === 'en') {
+            loadKanban(Self, settings, _dataMatrix);
+        } else {
+            loadTranslation(settings.language).then(function () {
+                loadKanban(Self, settings, _dataMatrix);
+            });
+        }
         return this;
     }
 })(jQuery, window);

@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,24 +21,8 @@
         $(function () {
             var data = [
                 {
-                    title: 'Une autre chose à faire. Io fa natao lavabe',
+                    title: 'Une action à faire',
                     header: 'todiscuss'
-                },
-                {
-                    title: 'Chose à faire',
-                    header: 'todiscuss'
-                },
-                {
-                    title: 'Addition',
-                    header: 'todiscuss'
-                },
-                {
-                    title: 'Chose à faire',
-                    header: 'done'
-                },
-                {
-                    title: 'Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte Ceci est une action avec de très très long texte',
-                    header: 'todo'
                 }
             ];
             var headers = [
@@ -54,6 +37,7 @@
                 data,
                 prependOnly: false,
                 editable: true,
+                language: 'fr',
                 onCardClick(clickedData) {
                     console.log('Rinelfi clicked', clickedData);
                 },
