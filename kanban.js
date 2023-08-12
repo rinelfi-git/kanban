@@ -372,7 +372,7 @@
                 var targetColumn = moveContextDom.find('[name=list-map]').val();
                 var targetLine = parseInt(moveContextDom.find('[name=position-map]').val());
                 var listCardContainerDom = Context.find(`.kanban-list-wrapper[data-column=${targetColumn}] .kanban-list-cards`);
-                if (targetLine === 0 && listCardContainerDom.children().eq(targetLine).length === 0) listCardContainerDom.append(cardParentDom);
+                if (targetLine === 0 && listCardContainerDom.children().eq(targetLine).length === 0 || listCardContainerDom.children().eq(targetLine).length === targetLine) listCardContainerDom.append(cardParentDom);
                 else listCardContainerDom.children().eq(targetLine).before(cardParentDom);
                 dragAndDropManager.onCardDrop(cardParentDom, cardIndex);
                 overlayDom.removeClass('active').empty();
