@@ -512,6 +512,7 @@
 
     $.fn.kanban = function (options = {}) {
         var Self = this;
+        Self.empty().html('');
         Self.append($('<div>', {
             class: 'kanban-container'
         }));
