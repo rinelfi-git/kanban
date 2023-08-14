@@ -21,6 +21,20 @@
         });
     }
 
+    function mediaQueryAndMaxWidth(container, width) {
+        if(container.outerWidth() <= width) {
+            container.find('.kanban-list-wrapper').css({
+                'scroll-snap-align': 'center'
+            });
+            container.find('.kanban-list-card-edit, .kanban-list-card-switch').css({
+                'display': 'inline-block'
+            });
+        } else {
+            container.find('.kanban-list-wrapper').css('scroll-snap-align', '');
+            container.find('.kanban-list-card-edit, .kanban-list-card-switch').css('display', '');
+        }
+    }
+
     function translate(keyword) {
         console.log('dictionnary', _dictionnary, keyword);
         if (_dictionnary[_currentLanguage] && _dictionnary[_currentLanguage][keyword]) return _dictionnary[_currentLanguage][keyword];
@@ -497,8 +511,7 @@
         });
         Context.addClass('kanban-initialized');
         Context.append('<div class="kanban-overlay"></div>');
-        $(W).resize(function () {
-        });
+        mediaQueryAndMaxWidth(Context, 770);
     }
 
     $.fn.kanban = function (options = {}) {
@@ -523,6 +536,9 @@
                 loadKanban(Self, settings, _dataMatrix);
             });
         }
+        $(W).resize(function() {
+            mediaQueryAndMaxWidth(Self, 770);
+        })
         return this;
     }
 })(jQuery, window);

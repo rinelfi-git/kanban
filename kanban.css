@@ -403,13 +403,3 @@ textarea.list-card-composer-textarea:focus {
 .select:hover::after {
     color: #f39c12;
 }
-
-@media only screen and (max-width: 770px) {
-    .kanban-list-wrapper {
-        scroll-snap-align: center;
-    }
-
-    .kanban-list-card-edit, .kanban-list-card-switch {
-        display: inline-block;
-    }
-}
