@@ -36,7 +36,6 @@
     }
 
     function translate(keyword) {
-        console.log('dictionnary', _dictionnary, keyword);
         if (_dictionnary[_currentLanguage] && _dictionnary[_currentLanguage][keyword]) return _dictionnary[_currentLanguage][keyword];
         return keyword;
     }
@@ -331,14 +330,12 @@
                 var numberOfElements = listCardDom.children().length;
                 var cardDom = listCardDom.find(`.kanban-list-card-detail[data-position=${dataLine.position}]`);
                 var cardIndex = listCardDom.find('.kanban-list-card-detail').index(cardDom);
-                console.log('have position', cardIndex);
                 if (dataLine.position >= 0 && dataLine.position < numberOfElements) listCardDom.children().eq(dataLine.position).before(cardDom);
                 else listCardDom.append(cardDom);
                 _dataMatrix[dataLine.header].splice(dataLine.position, 0, _dataMatrix[dataLine.header].splice(cardIndex, 1)[0]);
             }
         });
 
-        console.log('new data', _dataMatrix);
         bindDragAndDropEvents(Context, dragAndDropManager);
 
         // Événements
@@ -395,7 +392,6 @@
             var cardIndex = columnKanbanDoms.index(self);
             var data = _dataMatrix[columnId][cardIndex];
             if (typeof settings.onMoveCardOpen === 'function') settings.onMoveCardOpen(data);
-            console.log(cardIndex);
             var overlayDom = Context.find('.kanban-overlay');
             var scrollLeft = Context.scrollLeft();
             Context.css('overflow-x', 'hidden');
