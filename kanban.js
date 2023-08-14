@@ -39,6 +39,8 @@
             class: 'kanban-list-card-detail',
             'data-column': options.column
         });
+        if (typeof options.position === 'number' && options.position >= 0) listCardDetailContainer.attr('data-position', options.position);
+
         var listCardDetailText = $('<span>', {
             class: 'kanban-list-card-title',
             text: options.text
@@ -254,10 +256,13 @@
                 var newDataMatrix = $.extend({}, _dataMatrix);
                 var data = newDataMatrix[oldColumn][oldIndex];
                 data.header = newColumn;
+                data.position = newIndex;
                 newDataMatrix[oldColumn].splice(oldIndex, 1);
                 if (newIndex >= newDataMatrix[newColumn].length) newDataMatrix[newColumn].push(data);
                 else newDataMatrix[newColumn].splice(newIndex, 0, data);
                 _dataMatrix = newDataMatrix;
+                self.attr('data-position', newIndex);
+                self.data('position', newIndex);
                 Context.find(`.card-counter[data-column=${oldColumn}]`).text(newDataMatrix[oldColumn].length);
                 Context.find(`.card-counter[data-column=${newColumn}]`).text(newDataMatrix[newColumn].length);
                 if (typeof settings.onCardDrop === 'function') settings.onCardDrop({ data, origin: oldColumn, target: newColumn });
@@ -301,9 +306,25 @@
         // Ajouter les data
         $.each(settings.data, function (_, dataLine) {
             var listCardDom = $('#kanban-wrapper-' + dataLine.header + ' .kanban-list-cards');
-            listCardDom.append(buildCard({ column: dataLine.header, text: dataLine.title, editable: settings.editable }));
+            listCardDom.append(buildCard({ column: dataLine.header, text: dataLine.title, editable: settings.editable, position: typeof dataLine.position === 'number' ? dataLine.position : -1 }));
             _dataMatrix[dataLine.header].push(dataLine);
         });
+
+        // Repositionner les éléments s'ils ont de la position
+        $.each(settings.data, function (_, dataLine) {
+            var listCardDom = $('#kanban-wrapper-' + dataLine.header + ' .kanban-list-cards');
+            if (typeof dataLine.position === 'number') {
+                var numberOfElements = listCardDom.children().length;
+                var cardDom = listCardDom.find(`.kanban-list-card-detail[data-position=${dataLine.position}]`);
+                var cardIndex = listCardDom.find('.kanban-list-card-detail').index(cardDom);
+                console.log('have position', cardIndex);
+                if (dataLine.position >= 0 && dataLine.position < numberOfElements) listCardDom.children().eq(dataLine.position).before(cardDom);
+                else listCardDom.append(cardDom);
+                _dataMatrix[dataLine.header].splice(dataLine.position, 0, _dataMatrix[dataLine.header].splice(cardIndex, 1)[0]);
+            }
+        });
+
+        console.log('new data', _dataMatrix);
         bindDragAndDropEvents(Context, dragAndDropManager);
 
         // Événements
