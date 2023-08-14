@@ -89,11 +89,6 @@
 }
 
 .kanban-list-cards {
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    gap: 7px;
-    justify-content: space-between;
     margin: 0 4px;
     min-height: 0;
     overflow-x: hidden;
@@ -110,7 +105,7 @@
     display: block;
     border-radius: 8px;
     max-width: 300px;
-    min-height: 20px;
+    min-height: 32px;
     position: relative;
     scroll-margin: 8px;
     overflow: hidden;
@@ -121,6 +116,11 @@
     --moz-user-select: none;
     --o-user-select: none;
     box-sizing: border-box;
+    margin-bottom: 8px;
+}
+
+.kanban-list-card-detail:last-child {
+    margin-bottom: 0;
 }
 
 .kanban-list-card-detail.active-card:not(.dragging) {
@@ -182,10 +182,8 @@
 
 .card-composer {
     border-radius: 8px;
-    flex-shrink: 0;
-    margin-bottom: 10px;
     padding-bottom: 0;
-    z-index: 30;
+    margin-bottom: 50px;
 }
 
 .list-card {
@@ -222,7 +220,8 @@
 
 .list-card-details {
     overflow: hidden;
-    padding: 5px 5px 0;;
+    padding: 5px 5px 0;
+    ;
     position: relative;
     border-radius: 8px;
     z-index: 10;

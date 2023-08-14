@@ -11,10 +11,10 @@
     var _dictionnary = {};
     var _currentLanguage;
 
-    function loadTranslation(language) {
+    function loadTranslation(language, from) {
         _currentLanguage = language;
         return new Promise(function (resolve) {
-            $.getJSON(`language/${language}.json`, function (data) {
+            $.getJSON(`${typeof from === 'string' ? from : ''}language/${language}.json`, function (data) {
                 _dictionnary[language] = data;
                 resolve();
             })
@@ -86,7 +86,7 @@
         var container = $('<div>', {
             class: 'card-composer',
             css: {
-                position: 'absolute',
+                position: 'fixed',
                 top: position.y,
                 left: position.x,
                 width: size.width
@@ -139,11 +139,14 @@
             width = $(this).width();
             height = $(this).height();
             dragstart = true;
-            $(this).off('mouseup').one('mouseup', mouseup).on('mousemove', mousemove);
+            $(this).off('mouseup').one('mouseup', mouseup)
+            $(document).off('mousemove').on('mousemove', '.kanban-list-card-detail', function(event) {
+                mousemove(event.originalEvent, this);
+            });
         }
-        function mousemove(event) {
+        function mousemove(event, target) {
             if (!dragstart) return;
-            var self = $(this);
+            var self = $(target);
             self.removeClass('active-card');
             if (!self.hasClass('dragging')) {
                 var bcr = self.get(0).getBoundingClientRect();
@@ -179,7 +182,7 @@
             var self = $(this);
             self.off('mouseup');
             self.off('mouseleave');
-            self.off('mousemove');
+            $(document).off('mousemove');
             if (!dragstart) return;
             dragstart = false;
             if (!dragover) return;
@@ -215,7 +218,8 @@
         }
 
         context.find('.kanban-list-card-detail').each(function () {
-            $(this).off('mousedown').off('mousemove', mousemove).off('mouseup', mouseup);
+            $(this).off('mousedown').off('mouseup', mouseup);
+            $(document).off('mousemove');
         });
         context.find('.kanban-list-card-detail').each(function () {
             $(this).on('mousedown', mousedown);
@@ -364,11 +368,12 @@
             var scrollLeft = Context.scrollLeft();
             Context.css('overflow-x', 'hidden');
             Context.scrollLeft(scrollLeft);
+            var parentBcr = parentCardDom.get(0).getBoundingClientRect();
             overlayDom.append(buildCardEditor({
                 data,
                 position: {
-                    x: parentCardDom.offset().left,
-                    y: parentCardDom.offset().top
+                    x: parentBcr.x,
+                    y: parentBcr.y
                 },
                 size: {
                     width: parentCardDom.outerWidth()
@@ -529,7 +534,7 @@
         if (settings.language === 'en') {
             loadKanban(Self, settings, _dataMatrix);
         } else {
-            loadTranslation(settings.language).then(function () {
+            loadTranslation(settings.language, settings.endpoint ? settings.endpoint : null).then(function () {
                 loadKanban(Self, settings, _dataMatrix);
             });
         }
