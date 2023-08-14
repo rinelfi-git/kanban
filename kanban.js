@@ -23,14 +23,10 @@
 
     function mediaQueryAndMaxWidth(container, width) {
         if(container.outerWidth() <= width) {
-            container.find('.kanban-list-wrapper').css({
-                'scroll-snap-align': 'center'
-            });
             container.find('.kanban-list-card-edit, .kanban-list-card-switch').css({
                 'display': 'inline-block'
             });
         } else {
-            container.find('.kanban-list-wrapper').css('scroll-snap-align', '');
             container.find('.kanban-list-card-edit, .kanban-list-card-switch').css('display', '');
         }
     }
@@ -343,11 +339,11 @@
         bindDragAndDropEvents(Context, dragAndDropManager);
 
         // Événements
-        Context.on('mouseover', '.kanban-list-card-detail', function () {
+        Context.off('mouseover').on('mouseover', '.kanban-list-card-detail', function () {
             $(this).addClass('active-card');
-        }).on('mouseout', '.kanban-list-card-detail', function () {
+        }).off('mouseout').on('mouseout', '.kanban-list-card-detail', function () {
             $(this).removeClass('active-card');
-        }).on('click', '.kanban-list-card-detail', function () {
+        }).off('click').on('click', '.kanban-list-card-detail', function () {
             var self = $(this);
             var columnId = self.data('column');
             var columnKanbanDoms = $('.kanban-list-card-detail[data-column="' + columnId + '"]');
@@ -471,7 +467,7 @@
             $('.card-composer').remove();
             $('.kanban-list-card-detail[data-column]:hidden').css('display', '');
             Context.css('overflow-x', '');
-        }).on('keydown', '.card-composer', function (event) {
+        }).off('keydown').on('keydown', '.card-composer', function (event) {
             if (event.originalEvent.key === 'Enter') {
                 event.preventDefault();
                 $(this).find('.js-add-card').trigger('click');
