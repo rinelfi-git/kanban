@@ -22,7 +22,7 @@
     }
 
     function mediaQueryAndMaxWidth(container, width) {
-        if(container.outerWidth() <= width) {
+        if (container.outerWidth() <= width) {
             container.find('.kanban-list-card-edit, .kanban-list-card-switch').css({
                 'display': 'inline-block'
             });
@@ -136,7 +136,7 @@
             height = $(this).height();
             dragstart = true;
             $(this).off('mouseup').one('mouseup', mouseup)
-            $(document).off('mousemove').on('mousemove', '.kanban-list-card-detail', function(event) {
+            $(document).off('mousemove').on('mousemove', '.kanban-list-card-detail', function (event) {
                 mousemove(event.originalEvent, this);
             });
         }
@@ -254,35 +254,37 @@
         return moveCardContext;
     }
 
-    function loadKanban(Context, settings, _dataMatrix) {
-        var dragAndDropManager = {
-            prependOnly: settings.prependOnly,
-            onCardDrop(self, oldIndex) {
-                var oldColumn = self.data('column');
-                var newColumn = self.parents('.kanban-list-wrapper').data('column');
-                self.attr('data-column', newColumn);
-                self.data('column', newColumn);
-                self.find('.kanban-list-card-edit').attr('data-column', newColumn).data('column', newColumn);
-                self.find('.kanban-list-card-switch').attr('data-column', newColumn).data('column', newColumn);
-                var columnKanbanDoms = $('.kanban-list-card-detail[data-column="' + newColumn + '"]');
-                var newIndex = columnKanbanDoms.index(self);
-                var newDataMatrix = $.extend({}, _dataMatrix);
-                var data = newDataMatrix[oldColumn][oldIndex];
-                data.header = newColumn;
-                data.position = newIndex;
-                newDataMatrix[oldColumn].splice(oldIndex, 1);
-                if (newIndex >= newDataMatrix[newColumn].length) newDataMatrix[newColumn].push(data);
-                else newDataMatrix[newColumn].splice(newIndex, 0, data);
-                _dataMatrix = newDataMatrix;
-                self.attr('data-position', newIndex);
-                self.data('position', newIndex);
-                Context.find(`.card-counter[data-column=${oldColumn}]`).text(newDataMatrix[oldColumn].length);
-                Context.find(`.card-counter[data-column=${newColumn}]`).text(newDataMatrix[newColumn].length);
-                if (typeof settings.onCardDrop === 'function') settings.onCardDrop({ data, origin: oldColumn, target: newColumn });
+    function addColumns(Context, headers) {
+        $.each(headers, function (_, oneHeader) {
+            var matrix = Context.data('matrix');
+            var settings = Context.data('settings');
+            function findHeader(oneHeaderFind) {
+                return oneHeaderFind.id === oneHeader.id;
             }
-        }
-        // Traitement des entêtes
-        $.each(settings.headers, function (_, oneHeader) {
+            if (typeof matrix[oneHeader.id] === 'undefined' || !Array.isArray(matrix[oneHeader.id])) matrix[oneHeader.id] = [];
+            if (typeof settings.headers.find(findHeader) === 'undefined') settings.headers.push(oneHeader);
+            Context.data('matrix', matrix);
+            Context.data('settings', settings);
+        });
+    }
+
+    function addData(Context, data) {
+        $.each(data, function (_, dataLine) {
+            var matrix = Context.data('matrix');
+            if (typeof matrix[dataLine.header] === 'undefined' || !Array.isArray(matrix[dataLine.header])) matrix[dataLine.header] = [];
+            if (typeof dataLine.position === 'number') {
+                if (dataLine.position >= matrix[dataLine.header].length || dataLine.position < 0) matrix[dataLine.header].push(dataLine);
+                else matrix[dataLine.header].splice(dataLine.position, 0, dataLine);
+            } else matrix[dataLine.header].push(dataLine);
+            Context.data('matrix', matrix);
+        });
+    }
+
+    function buildColumns(Context) {
+        var settings = Context.data('settings');
+        $.each(Context.data('matrix'), function (oneHeaderKey) {
+            if (Context.find(`kanban-list-wrapper[data-column=${oneHeaderKey}]`).length > 0) return false;
+            var oneHeader = settings.headers.find(oneHeaderFind => oneHeaderFind.id === oneHeaderKey);
             var kanbanListWrapperDom = $('<div>', {
                 class: 'kanban-list-wrapper',
                 id: 'kanban-wrapper-' + oneHeader.id,
@@ -293,7 +295,7 @@
             });
             var kanbanListHeaderDom = $('<div>', {
                 class: 'kanban-list-header',
-                html: `${oneHeader.label} ${settings.showCardNumber ? `(<span data-column="${oneHeader.id}" class="card-counter">${settings.data.filter(oneDataFilter => oneDataFilter.header === oneHeader.id).length}</span>)` : ''}`
+                html: `${oneHeader.label} ${settings.showCardNumber ? `(<span data-column="${oneHeader.id}" class="card-counter">0</span>)` : ''}`
             });
             var listCardDom = $('<div>', {
                 class: 'kanban-list-cards'
@@ -313,28 +315,58 @@
                 .append(listCardDom)
                 .append(composerContainerDom.append(addNewCardButtonDom));
             Context.find('.kanban-container').append(kanbanListWrapperDom.append(kanbanListContentDom));
-            _dataMatrix[oneHeader.id] = [];
-        }.bind(Context));
+        })
+    }
 
-        // Ajouter les data
-        $.each(settings.data, function (_, dataLine) {
-            var listCardDom = $('#kanban-wrapper-' + dataLine.header + ' .kanban-list-cards');
-            listCardDom.append(buildCard({ column: dataLine.header, text: dataLine.title, editable: settings.editable, position: typeof dataLine.position === 'number' ? dataLine.position : -1 }));
-            _dataMatrix[dataLine.header].push(dataLine);
+    function buildCards(Context) {
+        var settings = Context.data('settings');
+        $.each(Context.data('matrix'), function (column, oneMatrixData) {
+            var listCardDom = Context.find('#kanban-wrapper-' + column + ' .kanban-list-cards');
+            Context.find(`.kanban-list-header .card-counter[data-column=${column}]`).text(oneMatrixData.length);
+            listCardDom.children().remove();
+            $.each(oneMatrixData, function (_, oneMatrixDatum) {
+                listCardDom.append(buildCard({ column: oneMatrixDatum.header, text: oneMatrixDatum.title, editable: settings.editable, position: typeof oneMatrixDatum.position === 'number' ? oneMatrixDatum.position : -1 }));
+            });
         });
+        mediaQueryAndMaxWidth(Context, 770);
+    }
 
-        // Repositionner les éléments s'ils ont de la position
-        $.each(settings.data, function (_, dataLine) {
-            var listCardDom = $('#kanban-wrapper-' + dataLine.header + ' .kanban-list-cards');
-            if (typeof dataLine.position === 'number') {
-                var numberOfElements = listCardDom.children().length;
-                var cardDom = listCardDom.find(`.kanban-list-card-detail[data-position=${dataLine.position}]`);
-                var cardIndex = listCardDom.find('.kanban-list-card-detail').index(cardDom);
-                if (dataLine.position >= 0 && dataLine.position < numberOfElements) listCardDom.children().eq(dataLine.position).before(cardDom);
-                else listCardDom.append(cardDom);
-                _dataMatrix[dataLine.header].splice(dataLine.position, 0, _dataMatrix[dataLine.header].splice(cardIndex, 1)[0]);
+    function loadKanban(Context) {
+        var settings = Context.data('settings');
+
+        var dragAndDropManager = {
+            prependOnly: settings.prependOnly,
+            onCardDrop(self, oldIndex) {
+                var oldColumn = self.data('column');
+                var newColumn = self.parents('.kanban-list-wrapper').data('column');
+                self.attr('data-column', newColumn);
+                self.data('column', newColumn);
+                self.find('.kanban-list-card-edit').attr('data-column', newColumn).data('column', newColumn);
+                self.find('.kanban-list-card-switch').attr('data-column', newColumn).data('column', newColumn);
+                var columnKanbanDoms = $('.kanban-list-card-detail[data-column="' + newColumn + '"]');
+                var newIndex = columnKanbanDoms.index(self);
+                var newDataMatrix = $.extend({}, Context.data('matrix'));
+                var data = newDataMatrix[oldColumn][oldIndex];
+                data.header = newColumn;
+                data.position = newIndex;
+                newDataMatrix[oldColumn].splice(oldIndex, 1);
+                if (newIndex >= newDataMatrix[newColumn].length) newDataMatrix[newColumn].push(data);
+                else newDataMatrix[newColumn].splice(newIndex, 0, data);
+                Context.data('matrix', newDataMatrix);
+                self.attr('data-position', newIndex);
+                self.data('position', newIndex);
+                Context.find(`.card-counter[data-column=${oldColumn}]`).text(newDataMatrix[oldColumn].length);
+                Context.find(`.card-counter[data-column=${newColumn}]`).text(newDataMatrix[newColumn].length);
+                if (typeof settings.onCardDrop === 'function') settings.onCardDrop({ data, origin: oldColumn, target: newColumn });
             }
-        });
+        }
+        // Traitement des entêtes
+        addColumns(Context, settings.headers);
+
+        // Reordonner la matrice
+        addData(Context, settings.data);
+        buildColumns(Context);
+        buildCards(Context);
 
         bindDragAndDropEvents(Context, dragAndDropManager);
 
@@ -348,7 +380,8 @@
             var columnId = self.data('column');
             var columnKanbanDoms = $('.kanban-list-card-detail[data-column="' + columnId + '"]');
             var cardIndex = columnKanbanDoms.index(this);
-            var data = _dataMatrix[columnId][cardIndex];
+            var matrix = Context.data('matrix');
+            var data = matrix[columnId][cardIndex];
             if (typeof settings.onCardClick === 'function') settings.onCardClick(data);
         }).on('click', '.kanban-list-card-edit', function (event) {
             event.stopPropagation();
@@ -356,7 +389,8 @@
             var columnId = self.data('column');
             var columnKanbanDoms = $('.kanban-list-card-edit[data-column="' + columnId + '"]');
             var cardIndex = columnKanbanDoms.index(self);
-            var data = _dataMatrix[columnId][cardIndex];
+            var matrix = Context.data('matrix');
+            var data = matrix[columnId][cardIndex];
             if (typeof settings.onEditCardOpen === 'function') settings.onEditCardOpen(data);
 
             var parentCardDom = self.parents('.kanban-list-card-detail');
@@ -391,13 +425,14 @@
             var columnId = self.data('column');
             var columnKanbanDoms = $('.kanban-list-card-switch[data-column="' + columnId + '"]');
             var cardIndex = columnKanbanDoms.index(self);
-            var data = _dataMatrix[columnId][cardIndex];
+            var matrix = Context.data('matrix');
+            var data = matrix[columnId][cardIndex];
             if (typeof settings.onMoveCardOpen === 'function') settings.onMoveCardOpen(data);
             var overlayDom = Context.find('.kanban-overlay');
             var scrollLeft = Context.scrollLeft();
             Context.css('overflow-x', 'hidden');
             Context.scrollLeft(scrollLeft);
-            var moveContextDom = buildCardMoveContext(settings.headers, data, _dataMatrix)
+            var moveContextDom = buildCardMoveContext(settings.headers, data, matrix)
             overlayDom.append(moveContextDom).addClass('active');
             moveContextDom.on('click', '.js-submit', function () {
                 var cardParentDom = self.parents('.kanban-list-card-detail');
@@ -475,15 +510,17 @@
         }).on('click', '.js-add-card', function () {
             var self = $(this);
             var textArea = self.parents('.card-composer').find('.js-card-title');
+            var matrix = Context.data('matrix');
             if (textArea.val()) {
                 var column = self.data('column');
                 switch (self.data('action')) {
                     case 'update':
                         var index = parseInt(self.data('target'), 10);
                         $(`[data-column="${column}"] .kanban-list-card-title`).eq(index).text(textArea.val());
-                        var oldValue = $.extend({}, _dataMatrix[column][index]);
-                        _dataMatrix[column][index].title = textArea.val();
-                        var newValue = _dataMatrix[column][index];
+                        var oldValue = $.extend({}, matrix[column][index]);
+                        matrix[column][index].title = textArea.val();
+                        var newValue = matrix[column][index];
+                        Context.data('matrix', matrix);
                         if (typeof settings.onCardUpdate === 'function') settings.onCardUpdate({ oldValue, newValue });
                         break;
                     case 'insert':
@@ -496,8 +533,9 @@
                             header: column,
                             title: textArea.val()
                         };
-                        _dataMatrix[column].push(newData);
-                        Context.find(`.card-counter[data-column=${column}]`).text(_dataMatrix[column].length);
+                        matrix[column].push(newData);
+                        Context.find(`.card-counter[data-column=${column}]`).text(matrix[column].length);
+                        Context.data('matrix', matrix);
                         if (typeof settings.onCardInsert === 'function') settings.onCardInsert(newData);
                         bindDragAndDropEvents(Context, dragAndDropManager);
                         break;
@@ -508,35 +546,63 @@
         });
         Context.addClass('kanban-initialized');
         Context.append('<div class="kanban-overlay"></div>');
-        mediaQueryAndMaxWidth(Context, 770);
     }
 
-    $.fn.kanban = function (options = {}) {
-        var Self = this;
-        Self.empty().html('');
-        Self.append($('<div>', {
+    function initKanban(Context) {
+        var settings = Context.data('settings');
+        Context.empty().html('');
+        Context.append($('<div>', {
             class: 'kanban-container'
         }));
-        var _dataMatrix = {};
-        var defaultOptions = {
-            headers: [],
-            data: [],
-            headerEditable: true,
-            prependOnly: false,
-            editable: true,
-            language: 'en'
-        };
-        var settings = $.extend(true, {}, defaultOptions, options);
         if (settings.language === 'en') {
-            loadKanban(Self, settings, _dataMatrix);
+            loadKanban(Context);
         } else {
             loadTranslation(settings.language, settings.endpoint ? settings.endpoint : null).then(function () {
-                loadKanban(Self, settings, _dataMatrix);
+                loadKanban(Context);
             });
         }
-        $(W).resize(function() {
+    }
+
+    $.fn.kanban = function (options = {}, argument) {
+        var Self = this;
+        Self.data('matrix', typeof Self.data('matrix') === 'object' ? Self.data('matrix') : {});
+        Self.data('settings', typeof Self.data('settings') === 'object' ? Self.data('settings') : {});
+        if (typeof options === 'object') {
+            var defaultOptions = {
+                headers: [],
+                data: [],
+                headerEditable: true,
+                prependOnly: false,
+                editable: true,
+                language: 'en'
+            };
+            var settings = $.extend(true, {}, defaultOptions, options);
+            Self.data('settings', settings);
+            Self.data('matrix', {});
+            initKanban(Self);
+        } else if (typeof options === 'string' && typeof argument !== 'undefined') {
+            switch (options) {
+                case 'setData':
+                    var matrixData = Self.data('matrix');
+                    var oldData = matrixData[argument.column][argument.index];
+                    var data = $.extend({}, oldData, argument.data);
+                    matrixData[argument.column][argument.index] = data;
+                    Self.data('matrix', matrixData);
+                    buildCards(Self);
+                    break;
+                case 'addData':
+                    addData(Self, Array.isArray(argument) ? argument : [argument]);
+                    buildCards(Self);
+                    break;
+                case 'getData':
+                    var matrixData = Self.data('matrix');
+                    return matrixData[argument.column][argument.index];
+                    break;
+            }
+        }
+        W.addEventListener('resize', function() {
             mediaQueryAndMaxWidth(Self, 770);
-        })
+        });
         return this;
     }
 })(jQuery, window);
