@@ -48,7 +48,6 @@
             class: 'kanban-list-card-detail',
             'data-column': options.column
         });
-        if (typeof options.position === 'number' && options.position >= 0) listCardDetailContainer.attr('data-position', options.position);
 
         var listCardDetailText = $('<span>', {
             class: 'kanban-list-card-title',
@@ -275,7 +274,14 @@
             if (typeof dataLine.position === 'number') {
                 if (dataLine.position >= matrix[dataLine.header].length || dataLine.position < 0) matrix[dataLine.header].push(dataLine);
                 else matrix[dataLine.header].splice(dataLine.position, 0, dataLine);
-            } else matrix[dataLine.header].push(dataLine);
+            } else {
+                var last = matrix[dataLine.header].pop();
+                if(typeof last === 'undefined') matrix[dataLine.header].push(dataLine);
+                else if(typeof last.position === 'number') {
+                    if(matrix[dataLine.header].length < last.position) matrix[dataLine.header].push(dataLine, last);
+                    else matrix[dataLine.header].push(last, dataLine);
+                } else matrix[dataLine.header].push(last, dataLine);
+            }
             Context.data('matrix', matrix);
         });
     }
@@ -325,7 +331,7 @@
             Context.find(`.kanban-list-header .card-counter[data-column=${column}]`).text(oneMatrixData.length);
             listCardDom.children().remove();
             $.each(oneMatrixData, function (_, oneMatrixDatum) {
-                listCardDom.append(buildCard({ column: oneMatrixDatum.header, text: oneMatrixDatum.title, editable: settings.editable, position: typeof oneMatrixDatum.position === 'number' ? oneMatrixDatum.position : -1 }));
+                listCardDom.append(buildCard({ column: oneMatrixDatum.header, text: oneMatrixDatum.title, editable: settings.editable}));
             });
         });
         mediaQueryAndMaxWidth(Context, 770);
@@ -346,18 +352,31 @@
                 var columnKanbanDoms = $('.kanban-list-card-detail[data-column="' + newColumn + '"]');
                 var newIndex = columnKanbanDoms.index(self);
                 var newDataMatrix = $.extend({}, Context.data('matrix'));
+
                 var data = newDataMatrix[oldColumn][oldIndex];
                 data.header = newColumn;
                 data.position = newIndex;
                 newDataMatrix[oldColumn].splice(oldIndex, 1);
+
                 if (newIndex >= newDataMatrix[newColumn].length) newDataMatrix[newColumn].push(data);
                 else newDataMatrix[newColumn].splice(newIndex, 0, data);
+
+
+                var oldDataList = newDataMatrix[oldColumn];
+                for(var i = 0; i < oldDataList.length; i++) {
+                    if(typeof oldDataList[i].position === 'number') oldDataList[i].position = i;
+                }
+                var newDataList = newDataMatrix[newColumn];
+                for(var i = 0; i < newDataList.length; i++) {
+                    if(typeof newDataList[i].position === 'number') newDataList[i].position = i;
+                }
+                newDataMatrix[oldColumn] = oldDataList;
+                newDataMatrix[newColumn] = newDataList;
+
                 Context.data('matrix', newDataMatrix);
-                self.attr('data-position', newIndex);
-                self.data('position', newIndex);
                 Context.find(`.card-counter[data-column=${oldColumn}]`).text(newDataMatrix[oldColumn].length);
                 Context.find(`.card-counter[data-column=${newColumn}]`).text(newDataMatrix[newColumn].length);
-                if (typeof settings.onCardDrop === 'function') settings.onCardDrop({ data, origin: oldColumn, target: newColumn });
+                if (typeof settings.onCardDrop === 'function') settings.onCardDrop({ data, origin: oldColumn, target: newColumn }, {origin: oldDataList, target: newDataList});
             }
         }
         // Traitement des entêtes
@@ -439,7 +458,7 @@
                 var targetColumn = moveContextDom.find('[name=list-map]').val();
                 var targetLine = parseInt(moveContextDom.find('[name=position-map]').val());
                 var listCardContainerDom = Context.find(`.kanban-list-wrapper[data-column=${targetColumn}] .kanban-list-cards`);
-                if (targetLine === 0 && listCardContainerDom.children().eq(targetLine).length === 0 || listCardContainerDom.children().eq(targetLine).length === targetLine) listCardContainerDom.append(cardParentDom);
+                if (targetLine === 0 && listCardContainerDom.children().eq(targetLine).length === 0 || listCardContainerDom.children().length === targetLine + 1) listCardContainerDom.append(cardParentDom);
                 else listCardContainerDom.children().eq(targetLine).before(cardParentDom);
                 dragAndDropManager.onCardDrop(cardParentDom, cardIndex);
                 overlayDom.removeClass('active').empty();

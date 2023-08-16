@@ -59,8 +59,8 @@
                 onCardInsert(inserted) {
                     console.log('Rinelfi create at', inserted);
                 },
-                onCardDrop(dropped) {
-                    console.log('Rinelfi drop at', dropped);
+                onCardDrop(dropped, updates) {
+                    console.log('Rinelfi drop at', dropped, updates, $('#kanban').data('matrix'));
                 }
             });
         });
