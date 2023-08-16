@@ -60,7 +60,7 @@
         });
         var listCardDetailEdit = $('<button>', {
             class: 'kanban-list-card-edit',
-            html: '<span class="fa fa-edit"></span>',
+            html: '<span class="fa fa-pencil"></span>',
             'data-column': options.column
         });
         var cardActionDom = $('<div>', {
@@ -458,7 +458,7 @@
                 var targetColumn = moveContextDom.find('[name=list-map]').val();
                 var targetLine = parseInt(moveContextDom.find('[name=position-map]').val());
                 var listCardContainerDom = Context.find(`.kanban-list-wrapper[data-column=${targetColumn}] .kanban-list-cards`);
-                if (targetLine === 0 && listCardContainerDom.children().eq(targetLine).length === 0 || listCardContainerDom.children().length === targetLine + 1) listCardContainerDom.append(cardParentDom);
+                if (listCardContainerDom.children().length === targetLine) listCardContainerDom.append(cardParentDom);
                 else listCardContainerDom.children().eq(targetLine).before(cardParentDom);
                 dragAndDropManager.onCardDrop(cardParentDom, cardIndex);
                 overlayDom.removeClass('active').empty();
