@@ -61,7 +61,8 @@
                     console.log('Rinelfi update at', updated);
                 },
                 onCardInsert(inserted) {
-                    console.log('Rinelfi create at', inserted);
+                    inserted.id = 'Olona';
+                    $('#kanban').kanban('setData', {column: inserted.header, index: inserted.position, data: inserted});
                 },
                 onCardDrop(dropped, updates) {
                     console.log('Rinelfi drop at', dropped, updates, $('#kanban').data('matrix'));

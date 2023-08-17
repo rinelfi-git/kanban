@@ -47,8 +47,8 @@
         var html = `
                 <ul class="contributor-list">
                     ${
-                        contributorsList.map(function (oneContributor) {
-                            return `
+            contributorsList.map(function (oneContributor) {
+                return `
                                 <li class="contributor-info">
                                     <div class="contributor-image">
                                         <img src="${oneContributor.image}" alt="${oneContributor.name}" />
@@ -56,8 +56,8 @@
                                     <p class="contributor-name">${oneContributor.name}</p>
                                 </li>
                             `;
-                        }).join('')
-                    }
+            }).join('')
+        }
                 </ul>
             `;
         var containerDom = $('<div>', {
@@ -375,7 +375,6 @@
             Context.find(`.kanban-list-header .card-counter[data-column=${column}]`).text(oneMatrixData.length);
             listCardDom.children().remove();
             $.each(oneMatrixData, function (_, oneMatrixDatum) {
-                console.log('contributor data', oneMatrixDatum);
                 listCardDom.append(buildCard({ column: oneMatrixDatum.header, text: oneMatrixDatum.title, contributors: oneMatrixDatum.contributors, editable: settings.editable }));
             });
         });
@@ -441,7 +440,6 @@
             $(this).removeClass('active-card');
         }).off('click').on('click', '.kanban-list-card-detail', function (event) {
             event.stopPropagation();
-            console.log(event.target);
             if ($(event.target).parents('.kanban-footer-card').length > 0 || $(event.target).parents('.kanban-list-card-action').length > 0) return false;
             var self = $(this);
             var columnId = self.data('column');
@@ -591,7 +589,8 @@
                         if (typeof settings.onCardUpdate === 'function') settings.onCardUpdate({ oldValue, newValue });
                         break;
                     case 'insert':
-                        $(`#kanban-wrapper-${column} .kanban-list-cards`).append(buildCard({
+                        var cardsContainerDom = $(`#kanban-wrapper-${column} .kanban-list-cards`);
+                        cardsContainerDom.append(buildCard({
                             text: textArea.val(),
                             contributors: [],
                             column,
@@ -599,7 +598,9 @@
                         }));
                         var newData = {
                             header: column,
-                            title: textArea.val()
+                            title: textArea.val(),
+                            position: cardsContainerDom.children().length - 2,
+                            contributors: []
                         };
                         matrix[column].push(newData);
                         Context.find(`.card-counter[data-column=${column}]`).text(matrix[column].length);
