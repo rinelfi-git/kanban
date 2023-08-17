@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,7 +12,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
         integrity="sha512-SfTiTlX6kk+qitfevl/7LibUOeJWlt9rbyDn92a1DqWOw9vWG2MFoays0sgObmWazO5BQPiFucnnEAjpAB+/Sw=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link href="http://mozilla.github.io/foundation-icons/assets/foundation-icons.css" type="text/css" rel="stylesheet">
     <style>
         body {
             height: 100vh;
@@ -27,7 +27,11 @@
                 {
                     title: 'Première',
                     position: 8,
-                    header: 'todiscuss'
+                    header: 'todiscuss',
+                    contributors: [
+                        { name: 'Rijaniaina', image: 'https://2.gravatar.com/avatar/68745922c85aa7573484210c43638065' },
+                        { name: 'Rijaniaina Elie Fidèle Rijaniaina Elie Fidèle Rijaniaina Elie Fidèle ', image: 'https://2.gravatar.com/avatar/68745922c85aa7573484210c43638065' },
+                    ]
                 }
             ];
             var headers = [
@@ -42,7 +46,7 @@
                 data,
                 prependOnly: false,
                 editable: true,
-                language: 'fr',
+                language: 'sl',
                 showCardNumber: true,
                 onCardClick(clickedData) {
                     console.log('Rinelfi clicked', clickedData);
@@ -68,12 +72,7 @@
 </head>
 
 <body>
-    <div style="box-sizing: border-box; width: 100%;">
-        <div style="width: 50%;display: inline-block; box-sizing: border-box">
-            Lorem, ipsum dolor sit amet consectetur adipisicing elit. Veritatis voluptatum impedit optio architecto quia commodi asperiores laboriosam dolorum totam, officiis vero culpa soluta eum labore est ratione excepturi illo inventore!
-        </div>
-        <div id="kanban" style="width: 50%;display: inline-block; box-sizing: border-box"></div>
-    </div>
+    <div id="kanban"></div>
 </body>
 
 </html>

@@ -43,6 +43,30 @@
         return groupX && groupY;
     }
 
+    function buildContributorsDropdown(contributorsList) {
+        var html = `
+                <ul class="contributor-list">
+                    ${
+                        contributorsList.map(function (oneContributor) {
+                            return `
+                                <li class="contributor-info">
+                                    <div class="contributor-image">
+                                        <img src="${oneContributor.image}" alt="${oneContributor.name}" />
+                                    </div>
+                                    <p class="contributor-name">${oneContributor.name}</p>
+                                </li>
+                            `;
+                        }).join('')
+                    }
+                </ul>
+            `;
+        var containerDom = $('<div>', {
+            class: 'contributor-container',
+            html
+        });
+        return containerDom;
+    }
+
     function buildCard(options) {
         var listCardDetailContainer = $('<div>', {
             class: 'kanban-list-card-detail',
@@ -66,11 +90,23 @@
         var cardActionDom = $('<div>', {
             class: 'kanban-list-card-action'
         });
+        var cardFooterDom = $('<div>', {
+            class: 'kanban-footer-card'
+        });
+        var contributorDom = $('<button>', {
+            class: 'contributors-preview',
+            html: `${options.contributors.length} <span class="fa fa-users"></span>`
+        });
         if (options.editable) cardActionDom.append(listCardDetailEdit);
+        cardFooterDom.append(contributorDom);
         cardActionDom.append(listCardDetailSwitch);
         listCardDetailContainer
             .append(listCardDetailText)
-            .append(cardActionDom);
+            .append(cardActionDom)
+            .append(cardFooterDom);
+        if (options.contributors.length) {
+            listCardDetailContainer.append(buildContributorsDropdown(options.contributors))
+        }
         return listCardDetailContainer;
     }
 
@@ -268,7 +304,14 @@
     }
 
     function addData(Context, data) {
-        $.each(data, function (_, dataLine) {
+        var compiledDataList = data.map(function (datumMap) {
+            var defaultDadum = {
+                id: Math.floor(Math.random() * Date.now()),
+                contributors: []
+            };
+            return $.extend(true, {}, defaultDadum, datumMap);
+        });
+        $.each(compiledDataList, function (_, dataLine) {
             var matrix = Context.data('matrix');
             if (typeof matrix[dataLine.header] === 'undefined' || !Array.isArray(matrix[dataLine.header])) matrix[dataLine.header] = [];
             if (typeof dataLine.position === 'number') {
@@ -276,9 +319,9 @@
                 else matrix[dataLine.header].splice(dataLine.position, 0, dataLine);
             } else {
                 var last = matrix[dataLine.header].pop();
-                if(typeof last === 'undefined') matrix[dataLine.header].push(dataLine);
-                else if(typeof last.position === 'number') {
-                    if(matrix[dataLine.header].length < last.position) matrix[dataLine.header].push(dataLine, last);
+                if (typeof last === 'undefined') matrix[dataLine.header].push(dataLine);
+                else if (typeof last.position === 'number') {
+                    if (matrix[dataLine.header].length < last.position) matrix[dataLine.header].push(dataLine, last);
                     else matrix[dataLine.header].push(last, dataLine);
                 } else matrix[dataLine.header].push(last, dataLine);
             }
@@ -316,10 +359,11 @@
                     column: oneHeader.id
                 }
             });
+            if (settings.editable) composerContainerDom.append(addNewCardButtonDom);
             kanbanListContentDom
                 .append(kanbanListHeaderDom)
                 .append(listCardDom)
-                .append(composerContainerDom.append(addNewCardButtonDom));
+                .append(composerContainerDom);
             Context.find('.kanban-container').append(kanbanListWrapperDom.append(kanbanListContentDom));
         })
     }
@@ -331,7 +375,8 @@
             Context.find(`.kanban-list-header .card-counter[data-column=${column}]`).text(oneMatrixData.length);
             listCardDom.children().remove();
             $.each(oneMatrixData, function (_, oneMatrixDatum) {
-                listCardDom.append(buildCard({ column: oneMatrixDatum.header, text: oneMatrixDatum.title, editable: settings.editable}));
+                console.log('contributor data', oneMatrixDatum);
+                listCardDom.append(buildCard({ column: oneMatrixDatum.header, text: oneMatrixDatum.title, contributors: oneMatrixDatum.contributors, editable: settings.editable }));
             });
         });
         mediaQueryAndMaxWidth(Context, 770);
@@ -363,12 +408,12 @@
 
 
                 var oldDataList = newDataMatrix[oldColumn];
-                for(var i = 0; i < oldDataList.length; i++) {
-                    if(typeof oldDataList[i].position === 'number') oldDataList[i].position = i;
+                for (var i = 0; i < oldDataList.length; i++) {
+                    if (typeof oldDataList[i].position === 'number') oldDataList[i].position = i;
                 }
                 var newDataList = newDataMatrix[newColumn];
-                for(var i = 0; i < newDataList.length; i++) {
-                    if(typeof newDataList[i].position === 'number') newDataList[i].position = i;
+                for (var i = 0; i < newDataList.length; i++) {
+                    if (typeof newDataList[i].position === 'number') newDataList[i].position = i;
                 }
                 newDataMatrix[oldColumn] = oldDataList;
                 newDataMatrix[newColumn] = newDataList;
@@ -376,7 +421,7 @@
                 Context.data('matrix', newDataMatrix);
                 Context.find(`.card-counter[data-column=${oldColumn}]`).text(newDataMatrix[oldColumn].length);
                 Context.find(`.card-counter[data-column=${newColumn}]`).text(newDataMatrix[newColumn].length);
-                if (typeof settings.onCardDrop === 'function') settings.onCardDrop({ data, origin: oldColumn, target: newColumn }, {origin: oldDataList, target: newDataList});
+                if (typeof settings.onCardDrop === 'function') settings.onCardDrop({ data, origin: oldColumn, target: newColumn }, { origin: oldDataList, target: newDataList });
             }
         }
         // Traitement des entêtes
@@ -394,7 +439,10 @@
             $(this).addClass('active-card');
         }).off('mouseout').on('mouseout', '.kanban-list-card-detail', function () {
             $(this).removeClass('active-card');
-        }).off('click').on('click', '.kanban-list-card-detail', function () {
+        }).off('click').on('click', '.kanban-list-card-detail', function (event) {
+            event.stopPropagation();
+            console.log(event.target);
+            if ($(event.target).parents('.kanban-footer-card').length > 0 || $(event.target).parents('.kanban-list-card-action').length > 0) return false;
             var self = $(this);
             var columnId = self.data('column');
             var columnKanbanDoms = $('.kanban-list-card-detail[data-column="' + columnId + '"]');
@@ -545,6 +593,7 @@
                     case 'insert':
                         $(`#kanban-wrapper-${column} .kanban-list-cards`).append(buildCard({
                             text: textArea.val(),
+                            contributors: [],
                             column,
                             editable: settings.editable
                         }));
@@ -562,6 +611,8 @@
                 $('.js-cancel').trigger('click');
                 $('.kanban-overlay.active').trigger('click');
             }
+        }).on('click', '.contributors-preview', function() {
+            $(this).parents('.kanban-footer-card').next('.contributor-container').slideToggle({duration: 100});
         });
         Context.addClass('kanban-initialized');
         Context.append('<div class="kanban-overlay"></div>');
@@ -619,7 +670,7 @@
                     break;
             }
         }
-        W.addEventListener('resize', function() {
+        W.addEventListener('resize', function () {
             mediaQueryAndMaxWidth(Self, 770);
         });
         return this;
