@@ -439,7 +439,7 @@
             $(this).addClass('active-card');
         }).on('mouseout', '.kanban-list-card-detail', function () {
             $(this).removeClass('active-card');
-        }).on('click', '.kanban-list-card-detail', function (event) {
+        }).on('click', '.kanban-list-card-detail:not(.dragging)', function (event) {
             event.stopPropagation();
             if ($(event.target).parents('.kanban-footer-card').length > 0 || $(event.target).parents('.kanban-list-card-action').length > 0) return false;
             var self = $(this);
@@ -449,7 +449,7 @@
             var matrix = Context.data('matrix');
             var data = matrix[columnId][cardIndex];
             if (typeof settings.onCardClick === 'function') settings.onCardClick(data);
-        }).on('click', '.kanban-list-card-edit', function (event) {
+        }).on('click', '.kanban-list-card-detail:not(.dragging) .kanban-list-card-edit', function (event) {
             event.stopPropagation();
             var self = $(this);
             var columnId = self.data('column');
@@ -485,7 +485,7 @@
                 var self = $(this);
                 self.height(0).height(self.prop('scrollHeight'));
             });
-        }).on('click', '.kanban-list-card-switch', function (event) {
+        }).on('click', '.kanban-list-card-detail:not(.dragging) .kanban-list-card-switch', function (event) {
             event.stopPropagation();
             var self = $(this);
             var columnId = self.data('column');
@@ -510,6 +510,8 @@
                 dragAndDropManager.onCardDrop(cardParentDom, cardIndex);
                 overlayDom.removeClass('active').empty();
             });
+        }).on('click', '.kanban-list-card-detail:not(.dragging) .contributors-preview', function() {
+            $(this).parents('.kanban-footer-card').next('.contributor-container').slideToggle({duration: 100});
         }).on('click', '.kanban-new-card-button', function () {
             var columnId = $(this).data('column');
             var wrapperDom = $('#kanban-wrapper-' + columnId);
@@ -610,8 +612,6 @@
                 Context.find('.kanban-list-wrapper').trigger('editor-close');
                 $('.kanban-overlay.active').trigger('click');
             }
-        }).on('click', '.contributors-preview', function() {
-            $(this).parents('.kanban-footer-card').next('.contributor-container').slideToggle({duration: 100});
         }).on('keydown', '.card-composer', function (event) {
             if (event.originalEvent.key === 'Enter') {
                 event.preventDefault();
