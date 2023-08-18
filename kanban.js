@@ -434,11 +434,12 @@
         bindDragAndDropEvents(Context, dragAndDropManager);
 
         // Événements
-        Context.off('mouseover').on('mouseover', '.kanban-list-card-detail', function () {
+        Context.off('mouseover').off('mouseout').off('click').off('keydown');
+        Context.on('mouseover', '.kanban-list-card-detail', function () {
             $(this).addClass('active-card');
-        }).off('mouseout').on('mouseout', '.kanban-list-card-detail', function () {
+        }).on('mouseout', '.kanban-list-card-detail', function () {
             $(this).removeClass('active-card');
-        }).off('click').on('click', '.kanban-list-card-detail', function (event) {
+        }).on('click', '.kanban-list-card-detail', function (event) {
             event.stopPropagation();
             if ($(event.target).parents('.kanban-footer-card').length > 0 || $(event.target).parents('.kanban-list-card-action').length > 0) return false;
             var self = $(this);
@@ -532,6 +533,7 @@
             wrapperDom.find('.kanban-list-cards').append(html);
             wrapperDom.find('.js-card-title').focus();
             if (typeof settings.onCreateCardOpen === 'function') settings.onCreateCardOpen(columnId);
+            wrapperDom.off('editor-close');
             wrapperDom.on('editor-close', function () {
                 wrapperDom.find('.card-composer').remove();
                 wrapperDom.find('.kanban-new-card-button').css('display', '');
@@ -567,11 +569,6 @@
             $('.card-composer').remove();
             $('.kanban-list-card-detail[data-column]:hidden').css('display', '');
             Context.css('overflow-x', '');
-        }).off('keydown').on('keydown', '.card-composer', function (event) {
-            if (event.originalEvent.key === 'Enter') {
-                event.preventDefault();
-                $(this).find('.js-add-card').trigger('click');
-            }
         }).on('click', '.js-add-card', function () {
             var self = $(this);
             var textArea = self.parents('.card-composer').find('.js-card-title');
@@ -610,10 +607,16 @@
                         break;
                 }
                 $('.js-cancel').trigger('click');
+                Context.find('.kanban-list-wrapper').trigger('editor-close');
                 $('.kanban-overlay.active').trigger('click');
             }
         }).on('click', '.contributors-preview', function() {
             $(this).parents('.kanban-footer-card').next('.contributor-container').slideToggle({duration: 100});
+        }).on('keydown', '.card-composer', function (event) {
+            if (event.originalEvent.key === 'Enter') {
+                event.preventDefault();
+                $(this).find('.js-add-card').trigger('click');
+            }
         });
         Context.addClass('kanban-initialized');
         Context.append('<div class="kanban-overlay"></div>');
