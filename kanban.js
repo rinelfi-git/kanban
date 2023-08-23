@@ -436,7 +436,7 @@
             });
             var kanbanListHeaderDom = $('<div>', {
                 class: 'kanban-list-header',
-                html: `<span class="column-header-text">${oneHeader.label}</span> ${settings.showCardNumber ? `(<span data-column="${oneHeader.id}" class="card-counter">0</span>)` : ''}`
+                html: `<span class="column-header-text">${oneHeader.label}</span><input class="column-header-editor" value="${oneHeader.label}" type="text">${settings.showCardNumber ? `<span class="card-counter-container"> (<span data-column="${oneHeader.id}" class="card-counter">0</span>)</span>` : ''}`
             });
             var actionDropdownDom = $('<div>', {
                 class: 'kanban-action-dropdown',
@@ -643,17 +643,40 @@
                     wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(Context, column));
                     wrapperDom.find('.js-card-title').focus();
                     break;
+                case 'column-rename':
+                    var wrapperDom = self.parents('.kanban-list-wrapper');
+                    var headerEditorDom = wrapperDom.find('.column-header-editor');
+                    wrapperDom.find('.column-header-text').hide();
+                    headerEditorDom.css('display', 'inline-block');
+                    headerEditorDom.focus();
+                    headerEditorDom.select();
+                    break;
             }
             self.parents('.dropdown-list').removeClass('open');
         }).on('click', function (event) {
             var activeDropdownDomList = Context.find('.dropdown-list.open');
+            var visibleHeaderEditor = Context.find('.column-header-editor').filter(function(){
+                return $(this).is(':visible');
+            });
             if (activeDropdownDomList.length && $(event.target).parents('.kanban-action-dropdown').length === 0) {
                 activeDropdownDomList.removeClass('open');
+            }
+            if(visibleHeaderEditor.length && !$(event.target).hasClass('column-header-editor') && !$(event.target).hasClass('dropdown-item')) {
+                var settings = Context.data('settings');
+                var labelDom = visibleHeaderEditor.prev('.column-header-text');
+                var values = {old: labelDom.text(), new: visibleHeaderEditor.val()};
+                visibleHeaderEditor.css('display', '');
+                labelDom.text(visibleHeaderEditor.val()).css('display', '');
+                if(typeof settings.onHeaderChange === 'function') settings.onHeaderChange({column: visibleHeaderEditor.parents('.kanban-list-wrapper').data('column'), values});
             }
         }).on('keydown', '.card-composer', function (event) {
             if (event.originalEvent.key === 'Enter') {
                 event.preventDefault();
                 $(this).find('.js-add-card').trigger('click');
+            }
+        }).on('keydown', '.column-header-editor', function (event) {
+            if (event.originalEvent.key === 'Enter') {
+                Context.trigger('click');
             }
         });
         Context.addClass('kanban-initialized');
