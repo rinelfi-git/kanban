@@ -6,5 +6,6 @@
     "move the card": "mover la tarjeta",
     "enter a title for this card": "ingresa un título para esta tarjeta",
     "add a card": "añadir una tarjeta",
-    "current": "actual"
+    "current": "actual",
+    "rename this column" : "renombrar esta columna"
 }

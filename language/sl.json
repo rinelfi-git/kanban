@@ -6,5 +6,6 @@
     "move the card": "premakni kartico",
     "enter a title for this card": "vnesite naslov za to kartico",
     "add a card": "dodaj kartico",
-    "current": "trenutno"
+    "current": "trenutno",
+    "rename this column" : "preimenuj to stolpec"
 }

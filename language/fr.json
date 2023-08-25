@@ -6,5 +6,6 @@
     "move the card": "déplacer la carte",
     "enter a title for this card": "saisissez un titre pour cette carte",
     "add a card": "ajouter une carte",
-    "current": "courant"
+    "current": "courant",
+    "rename this column" : "renommer cette colonne"
 }

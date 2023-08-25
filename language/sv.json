@@ -6,5 +6,6 @@
     "move the card": "flytta kortet",
     "enter a title for this card": "ange en titel för detta kort",
     "add a card": "lägg till ett kort",
-    "current": "nuvarande"
+    "current": "nuvarande",
+    "rename this column" : "byt namn på den här kolumnen"
 }
