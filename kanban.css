@@ -252,6 +252,7 @@
 .contributor-name {
     margin: 0;
     flex: 1;
+    font-size: 14px;
 }
 
 .card-composer {
