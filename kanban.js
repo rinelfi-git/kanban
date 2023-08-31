@@ -512,7 +512,7 @@
                 return !target.hasClass(classnames) && target.parents(`.${classnames}`).length === 0;
             }
 
-            if (excludeElementsList.every(notElement)) {
+            if (excludeElementsList.every(notElement) && $('.card-composer').length === 0) {
                 var wrapperDom = self.parents('.kanban-list-wrapper');
                 var column = wrapperDom.data('column');
                 wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(Context, column)).scrollTop(0);
@@ -674,7 +674,6 @@
             headerEditorDom.css('display', 'inline-block');
             headerEditorDom.focus();
             headerEditorDom.select();
-            console.log(self)
         }).on('click', function (event) {
             var activeDropdownDomList = Context.find('.dropdown-list.open');
             var visibleHeaderEditor = Context.find('.column-header-editor').filter(function () {
