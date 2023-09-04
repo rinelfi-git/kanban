@@ -135,18 +135,33 @@
         return html;
     }
 
+    function getDataFromCard(Context, cardDom) {
+        var column = cardDom.data('column');
+        var index = cardDom.parents('.kanban-list-cards').find('.kanban-list-card-detail').index(cardDom);
+        var data = Context.data('matrix')
+        return data[column][index];
+    }
+
     function buildContributorsDropdown(contributorsList) {
         var html = `
                 <ul class="contributor-list">
                     ${contributorsList.map(function (oneContributor) {
+                        var dataList = typeof oneContributor.data === 'object' ? oneContributor.data : {};
+                        var dataString = '';
+                        $.each(dataList, function(key, value) {
+                            dataString += `data-${key.replace(/A-Z/g, function(match) {
+                                return `-${match.toLowerCase()}`;
+                            })}="${value.toString().replace(/"/g, '&quot;')}" `;
+                        });
+                        if(dataString.length > 0) dataString = dataString.substring(0, dataString.length  - 1);
             return `
-                                <li class="contributor-info">
-                                    <div class="contributor-image">
-                                        <img src="${oneContributor.image}" alt="${oneContributor.name}" />
-                                    </div>
-                                    <p class="contributor-name">${oneContributor.name}</p>
-                                </li>
-                            `;
+                <li class="contributor-info" ${dataString}>
+                    <div class="contributor-image">
+                        <img src="${oneContributor.image}" alt="${oneContributor.name}" />
+                    </div>
+                    <p class="contributor-name">${oneContributor.name}</p>
+                </li>
+            `;
         }).join('')
             }
                 </ul>
@@ -189,6 +204,20 @@
             html: `${options.contributors.length} <span class="fa fa-users"></span>`
         });
         if (options.editable) cardActionDom.append(listCardDetailEdit);
+        if(typeof options.actions === 'object' && Array.isArray(options.actions)) {
+            $.each(options.actions, function(_, oneAction) {
+                var html = '';
+                if(typeof oneAction.icon === 'undefined' && typeof oneAction.badge === 'undefined') return false;
+                html = typeof oneAction.badge === 'string' ? oneAction.badge : '';
+                html = html + (typeof oneAction.icon === 'string' ? `${(html.length > 0 ? ' ' : '')} <span class="${oneAction.icon}"></span>` : '');
+                var actionDom = $('<button>', {
+                    class: 'card-action',
+                    html
+                });
+                cardFooterDom.append(actionDom);
+                if(oneAction.action) actionDom.data('action', oneAction.action);
+            });
+        }
         cardFooterDom.append(contributorDom);
         cardActionDom.append(listCardDetailSwitch);
         listCardDetailContainer
@@ -478,7 +507,7 @@
             Context.find(`.kanban-list-header .card-counter[data-column=${column}]`).text(oneMatrixData.length);
             listCardDom.children().remove();
             $.each(oneMatrixData, function (_, oneMatrixDatum) {
-                listCardDom.append(buildCard({ column: oneMatrixDatum.header, text: oneMatrixDatum.title, contributors: oneMatrixDatum.contributors, editable: settings.editable }));
+                listCardDom.append(buildCard({ column: oneMatrixDatum.header, text: oneMatrixDatum.title, contributors: oneMatrixDatum.contributors, editable: settings.editable, actions: oneMatrixDatum.actions }));
             });
         });
         mediaQueryAndMaxWidth(Context, 770);
@@ -592,6 +621,10 @@
             });
         }).on('click', '.kanban-list-card-detail:not(.dragging) .contributors-preview', function () {
             $(this).parents('.kanban-footer-card').next('.contributor-container').slideToggle({ duration: 100 });
+        }).on('click', '.kanban-list-card-detail:not(.dragging) .card-action', function () {
+            var self = $(this);
+            var data = getDataFromCard(Context, self.parents('.kanban-list-card-detail'));
+            if(typeof self.data('action') === 'string' && typeof settings[self.data('action')] === 'function') settings[self.data('action')](data);
         }).on('click', '.kanban-new-card-button', function () {
             var columnId = $(this).data('column');
             var wrapperDom = $('#kanban-wrapper-' + columnId);
@@ -627,7 +660,8 @@
                             text: textArea.val(),
                             contributors: [],
                             column,
-                            editable: settings.editable
+                            editable: settings.editable,
+                            actions: []
                         }));
                         var newData = {
                             header: column,
@@ -674,6 +708,9 @@
             headerEditorDom.css('display', 'inline-block');
             headerEditorDom.focus();
             headerEditorDom.select();
+        }).on('click', '.contributor-info', function() {
+            var self = $(this);
+            if(typeof settings.onContributorClick === 'function') settings.onContributorClick(self.data());
         }).on('click', function (event) {
             var activeDropdownDomList = Context.find('.dropdown-list.open');
             var visibleHeaderEditor = Context.find('.column-header-editor').filter(function () {
