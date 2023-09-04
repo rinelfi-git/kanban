@@ -146,14 +146,14 @@
         var html = `
                 <ul class="contributor-list">
                     ${contributorsList.map(function (oneContributor) {
-                        var dataList = typeof oneContributor.data === 'object' ? oneContributor.data : {};
-                        var dataString = '';
-                        $.each(dataList, function(key, value) {
-                            dataString += `data-${key.replace(/A-Z/g, function(match) {
-                                return `-${match.toLowerCase()}`;
-                            })}="${value.toString().replace(/"/g, '&quot;')}" `;
-                        });
-                        if(dataString.length > 0) dataString = dataString.substring(0, dataString.length  - 1);
+            var dataList = typeof oneContributor.data === 'object' ? oneContributor.data : {};
+            var dataString = '';
+            $.each(dataList, function (key, value) {
+                dataString += `data-${key.replace(/A-Z/g, function (match) {
+                    return `-${match.toLowerCase()}`;
+                })}="${value.toString().replace(/"/g, '&quot;')}" `;
+            });
+            if (dataString.length > 0) dataString = dataString.substring(0, dataString.length - 1);
             return `
                 <li class="contributor-info" ${dataString}>
                     <div class="contributor-image">
@@ -204,10 +204,15 @@
             html: `${options.contributors.length} <span class="fa fa-users"></span>`
         });
         if (options.editable) cardActionDom.append(listCardDetailEdit);
-        if(typeof options.actions === 'object' && Array.isArray(options.actions)) {
-            $.each(options.actions, function(_, oneAction) {
+        if (typeof options.actions === 'object' && Array.isArray(options.actions)) {
+            $.each(options.actions, function (_, oneAction) {
                 var html = '';
-                if(typeof oneAction.icon === 'undefined' && typeof oneAction.badge === 'undefined') return false;
+                if (typeof oneAction.icon === 'undefined' && typeof oneAction.badge === 'undefined') return true;
+                if (options.actionConditionEnabled && typeof oneAction.hideCondition !== 'undefined') {
+                    var interrupt = false;
+                    for (var key in oneAction.hideCondition) { if (typeof oneAction[key] !== 'undefined' && oneAction[key] === oneAction.hideCondition[key]) interrupt = true; }
+                    if (interrupt) return true;
+                }
                 html = typeof oneAction.badge === 'string' ? oneAction.badge : '';
                 html = html + (typeof oneAction.icon === 'string' ? `${(html.length > 0 ? ' ' : '')} <span class="${oneAction.icon}"></span>` : '');
                 var actionDom = $('<button>', {
@@ -215,7 +220,7 @@
                     html
                 });
                 cardFooterDom.append(actionDom);
-                if(oneAction.action) actionDom.data('action', oneAction.action);
+                if (oneAction.action) actionDom.data('action', oneAction.action);
             });
         }
         cardFooterDom.append(contributorDom);
@@ -345,7 +350,7 @@
                 left: bcr.x
             }, {
                 easing: 'easeOutQuad',
-                duration: 150,
+                duration: 200,
                 complete() {
                     self.removeClass('dragging').css({ position: '', top: '', left: '', width: '', height: '', transform: '' });
                     _dragSubstituteDom.after(self);
@@ -507,7 +512,14 @@
             Context.find(`.kanban-list-header .card-counter[data-column=${column}]`).text(oneMatrixData.length);
             listCardDom.children().remove();
             $.each(oneMatrixData, function (_, oneMatrixDatum) {
-                listCardDom.append(buildCard({ column: oneMatrixDatum.header, text: oneMatrixDatum.title, contributors: oneMatrixDatum.contributors, editable: settings.editable, actions: oneMatrixDatum.actions }));
+                listCardDom.append(buildCard({
+                    column: oneMatrixDatum.header,
+                    text: oneMatrixDatum.title,
+                    contributors: oneMatrixDatum.contributors,
+                    editable: settings.editable,
+                    actions: oneMatrixDatum.actions,
+                    actionConditionEnabled: settings.actionConditionEnabled
+                }));
             });
         });
         mediaQueryAndMaxWidth(Context, 770);
@@ -569,7 +581,7 @@
             if (typeof settings.onEditCardOpen === 'function') settings.onEditCardOpen(data);
 
             var parentCardDom = self.parents('.kanban-list-card-detail');
-            var overlayDom = Context.find('.kanban-overlay');
+            var overlayDom = $('.kanban-overlay');
             var scrollLeft = Context.scrollLeft();
             Context.css('overflow-x', 'hidden');
             Context.scrollLeft(scrollLeft);
@@ -603,7 +615,7 @@
             var matrix = Context.data('matrix');
             var data = matrix[columnId][cardIndex];
             if (typeof settings.onMoveCardOpen === 'function') settings.onMoveCardOpen(data);
-            var overlayDom = Context.find('.kanban-overlay');
+            var overlayDom = $('.kanban-overlay');
             var scrollLeft = Context.scrollLeft();
             Context.css('overflow-x', 'hidden');
             Context.scrollLeft(scrollLeft);
@@ -624,20 +636,12 @@
         }).on('click', '.kanban-list-card-detail:not(.dragging) .card-action', function () {
             var self = $(this);
             var data = getDataFromCard(Context, self.parents('.kanban-list-card-detail'));
-            if(typeof self.data('action') === 'string' && typeof settings[self.data('action')] === 'function') settings[self.data('action')](data);
+            if (typeof self.data('action') === 'string' && typeof settings[self.data('action')] === 'function') settings[self.data('action')](data);
         }).on('click', '.kanban-new-card-button', function () {
             var columnId = $(this).data('column');
             var wrapperDom = $('#kanban-wrapper-' + columnId);
             wrapperDom.find('.kanban-list-cards').append(buildNewCardInput(Context, columnId));
             wrapperDom.find('.js-card-title').focus();
-        }).on('click', '.kanban-overlay.active', function (event) {
-            if (event.target !== this) return;
-            var self = $(this);
-            self.removeClass('active');
-            self.empty();
-            $('.card-composer').remove();
-            $('.kanban-list-card-detail[data-column]:hidden').css('display', '');
-            Context.css('overflow-x', '');
         }).on('click', '.js-add-card', function () {
             var self = $(this);
             var textArea = self.parents('.card-composer').find('.js-card-title');
@@ -661,7 +665,8 @@
                             contributors: [],
                             column,
                             editable: settings.editable,
-                            actions: []
+                            actions: [],
+                            actionConditionEnabled: settings.actionConditionEnabled
                         }));
                         var newData = {
                             header: column,
@@ -708,9 +713,9 @@
             headerEditorDom.css('display', 'inline-block');
             headerEditorDom.focus();
             headerEditorDom.select();
-        }).on('click', '.contributor-info', function() {
+        }).on('click', '.contributor-info', function () {
             var self = $(this);
-            if(typeof settings.onContributorClick === 'function') settings.onContributorClick(self.data());
+            if (typeof settings.onContributorClick === 'function') settings.onContributorClick(self.data());
         }).on('click', function (event) {
             var activeDropdownDomList = Context.find('.dropdown-list.open');
             var visibleHeaderEditor = Context.find('.column-header-editor').filter(function () {
@@ -739,7 +744,21 @@
             }
         });
         Context.addClass('kanban-initialized');
-        Context.append('<div class="kanban-overlay"></div>');
+
+        if($('.kanban-overlay').length === 0) {
+            var kanbanOverlayDom = $('<div>', {class: 'kanban-overlay'});
+            kanbanOverlayDom.on('click', function (event) {
+                if (event.target !== this) return;
+                var self = $(this);
+                if(!self.hasClass('active')) return;
+                self.removeClass('active');
+                self.empty();
+                $('.card-composer').remove();
+                $('.kanban-list-card-detail[data-column]:hidden').css('display', '');
+                Context.css('overflow-x', '');
+            });
+            $(document.body).prepend(kanbanOverlayDom);
+        }
     }
 
     function initKanban(Context) {
@@ -768,6 +787,7 @@
                 headerEditable: true,
                 prependOnly: false,
                 editable: true,
+                actionConditionEnabled: false,
                 language: 'en'
             };
             var settings = $.extend(true, {}, defaultOptions, options);

@@ -33,8 +33,8 @@
                         { name: 'Rijaniaina Elie Fidèle Rijaniaina Elie Fidèle Rijaniaina Elie Fidèle ', image: 'https://2.gravatar.com/avatar/68745922c85aa7573484210c43638065' },
                     ],
                     actions: [
-                        {icon: 'fa fa-commenting', badge: '0', action: 'onCardCommentClick'},
-                        {icon: 'fa fa-picture-o', badge: '0', action: 'onCardPictureClick'},
+                        {icon: 'fa fa-commenting', badge: '0', action: 'onCardCommentClick', hideCondition: {badge: '0'}},
+                        {icon: 'fa fa-picture-o', badge: '0', action: 'onCardPictureClick', hideCondition: {badge: '0'}},
                         {icon: 'fa fa-thumb-tack', badge: '0/0', action: 'onCardTaskClick'},
                     ]
                 }
@@ -53,6 +53,7 @@
                 editable: true,
                 language: 'fr',
                 showCardNumber: true,
+                actionConditionEnabled: true,
                 onCardClick(clickedData) {
                     console.log('Rinelfi clicked', clickedData);
                 },
@@ -70,7 +71,7 @@
                     inserted.actions = [
                         {icon: 'fa fa-commenting', badge: '0', action: 'onCardCommentClick'},
                         {icon: 'fa fa-picture-o', badge: '0', action: 'onCardPictureClick'},
-                        {icon: 'fa fa-thumb-tack', badge: '0/0', action: 'onCardTaskClick'},
+                        {icon: 'fa fa-thumb-tack', badge: '0/0', action: 'onCardTaskClick', condition: {badge: '0/0'}},
                     ];
                     $('#kanban').kanban('setData', {column: inserted.header, index: inserted.position, data: inserted});
                     console.log('new insertion', inserted);
