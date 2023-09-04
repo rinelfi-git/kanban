@@ -219,6 +219,12 @@
                     class: 'card-action',
                     html
                 });
+                // Spécificité communecter
+                if(oneAction.bstooltip) {
+                    actionDom.attr('data-toggle', 'tooltip').attr('data-placement', oneAction.bstooltip.position).attr('data-original-title', oneAction.bstooltip.text.replace(/"/g, '&quot;'));
+                    actionDom.addClass('tooltips');
+                }
+                // Spécificité communecter
                 cardFooterDom.append(actionDom);
                 if (oneAction.action) actionDom.data('action', oneAction.action);
             });
