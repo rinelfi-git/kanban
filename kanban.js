@@ -219,9 +219,9 @@
                     class: 'card-action',
                     html
                 });
-                if(typeof oneAction.className !== 'undefined' && oneAction.className.length > 0) actionDom.addClass('custom').addClass(oneAction.className);                
+                if (typeof oneAction.className !== 'undefined' && oneAction.className.length > 0) actionDom.addClass('custom').addClass(oneAction.className);
                 // Spécificité communecter
-                if(oneAction.bstooltip) {
+                if (oneAction.bstooltip) {
                     actionDom.attr('data-toggle', 'tooltip').attr('data-placement', oneAction.bstooltip.position).attr('data-original-title', oneAction.bstooltip.text.replace(/"/g, '&quot;'));
                     actionDom.addClass('tooltips');
                 }
@@ -462,6 +462,12 @@
         });
     }
 
+    function deleteData(Context, coordinates) {
+        var matrix = Context.data('matrix');
+        matrix[coordinates.column].splice(coordinates.index, 1);
+        Context.data('matrix', matrix);
+    }
+
     function buildColumns(Context) {
         var settings = Context.data('settings');
         $.each(Context.data('matrix'), function (oneHeaderKey) {
@@ -642,8 +648,9 @@
             $(this).parents('.kanban-footer-card').next('.contributor-container').slideToggle({ duration: 100 });
         }).on('click', '.kanban-list-card-detail:not(.dragging) .card-action', function () {
             var self = $(this);
-            var data = getDataFromCard(Context, self.parents('.kanban-list-card-detail'));
-            if (typeof self.data('action') === 'string' && typeof settings[self.data('action')] === 'function') settings[self.data('action')](data);
+            var cardDom = self.parents('.kanban-list-card-detail');
+            var data = getDataFromCard(Context, cardDom);
+            if (typeof self.data('action') === 'string' && typeof settings[self.data('action')] === 'function') settings[self.data('action')](data, cardDom);
         }).on('click', '.kanban-new-card-button', function () {
             var columnId = $(this).data('column');
             var wrapperDom = $('#kanban-wrapper-' + columnId);
@@ -752,12 +759,12 @@
         });
         Context.addClass('kanban-initialized');
 
-        if($('.kanban-overlay').length === 0) {
-            var kanbanOverlayDom = $('<div>', {class: 'kanban-overlay'});
+        if ($('.kanban-overlay').length === 0) {
+            var kanbanOverlayDom = $('<div>', { class: 'kanban-overlay' });
             kanbanOverlayDom.on('click', function (event) {
                 if (event.target !== this) return;
                 var self = $(this);
-                if(!self.hasClass('active')) return;
+                if (!self.hasClass('active')) return;
                 self.removeClass('active');
                 self.empty();
                 $('.card-composer').remove();
@@ -814,6 +821,10 @@
                     break;
                 case 'addData':
                     addData(Self, Array.isArray(argument) ? argument : [argument]);
+                    buildCards(Self);
+                    bindDragAndDropEvents(Self, _dragAndDropManager);
+                case 'deleteData':
+                    deleteData(Self, argument);
                     buildCards(Self);
                     bindDragAndDropEvents(Self, _dragAndDropManager);
                     break;

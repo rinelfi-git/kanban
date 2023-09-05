@@ -38,6 +38,7 @@
                     ],
                     actions: [
                         {icon: 'fa fa-commenting', badge: '0', action: 'onCardCommentClick', bstooltip: {text: 'Rija'}},
+                        {icon: 'fa fa-trash-o', action: 'onDelete'},
                         {icon: 'fa fa-picture-o', badge: '0', action: 'onCardPictureClick', hideCondition: {badge: '0'}},
                         {badge: '0/0', className: 'menamena'},
                     ]
@@ -50,7 +51,7 @@
                 { id: 'done', label: 'Terminé' },
                 { id: 'validated', label: 'Validé' },
             ]
-            $('#kanban').kanban({
+            var kanbanDom = $('#kanban').kanban({
                 headers,
                 data,
                 prependOnly: false,
@@ -77,7 +78,7 @@
                         {icon: 'fa fa-picture-o', badge: '0', action: 'onCardPictureClick'},
                         {icon: 'fa fa-thumb-tack', badge: '0/0', action: 'onCardTaskClick', condition: {badge: '0/0'}},
                     ];
-                    $('#kanban').kanban('setData', {column: inserted.header, index: inserted.position, data: inserted});
+                    kanbanDom.kanban('setData', {column: inserted.header, index: inserted.position, data: inserted});
                     console.log('new insertion', inserted);
                 },
                 onCardDrop(dropped, updates) {
@@ -88,6 +89,11 @@
                 },
                 onCardCommentClick(datum) {
                     console.log('comment', datum);
+                },
+                onDelete(action, dom) {
+                    console.log(dom);
+                    var index = kanbanDom.find(`[data-column=${action.header}] .kanban-list-card-detail`).index(dom)
+                    kanbanDom.kanban('deleteData', {column: action.header, index: index});
                 }
             });
         });
