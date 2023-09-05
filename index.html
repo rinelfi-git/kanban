@@ -94,6 +94,9 @@
                     console.log(dom);
                     var index = kanbanDom.find(`[data-column=${action.header}] .kanban-list-card-detail`).index(dom)
                     kanbanDom.kanban('deleteData', {column: action.header, index: index});
+                },
+                onRenderDone() {
+                    alert(kanbanDom.html());
                 }
             });
         });

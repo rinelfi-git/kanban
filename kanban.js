@@ -773,6 +773,7 @@
             });
             $(document.body).prepend(kanbanOverlayDom);
         }
+        if(typeof settings.onRenderDone === 'function') settings.onRenderDone();
     }
 
     function initKanban(Context) {
@@ -809,6 +810,7 @@
             Self.data('matrix', {});
             initKanban(Self);
         } else if (typeof options === 'string' && typeof argument !== 'undefined') {
+            var settings = Self.data('settings');
             switch (options) {
                 case 'setData':
                     var matrixData = Self.data('matrix');
@@ -818,15 +820,18 @@
                     Self.data('matrix', matrixData);
                     buildCards(Self);
                     bindDragAndDropEvents(Self, _dragAndDropManager);
+                    if(typeof settings.onRenderDone === 'function') settings.onRenderDone();
                     break;
                 case 'addData':
                     addData(Self, Array.isArray(argument) ? argument : [argument]);
                     buildCards(Self);
                     bindDragAndDropEvents(Self, _dragAndDropManager);
+                    if(typeof settings.onRenderDone === 'function') settings.onRenderDone();
                 case 'deleteData':
                     deleteData(Self, argument);
                     buildCards(Self);
                     bindDragAndDropEvents(Self, _dragAndDropManager);
+                    if(typeof settings.onRenderDone === 'function') settings.onRenderDone();
                     break;
                 case 'getData':
                     var matrixData = Self.data('matrix');
