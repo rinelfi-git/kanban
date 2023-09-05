@@ -186,11 +186,15 @@
     opacity: .7;
 }
 
+.card-action.custom {
+    background-color: transparent;
+}
+
 .kanban-list-card-switch {
     display: inline-block;
 }
 
-.kanban-list-card-edit:hover, .kanban-list-card-switch:hover, .contributors-preview:hover, .card-action:hover, .contributor-list>li:hover, .kanban-themed-button:hover {
+.kanban-list-card-edit:hover, .kanban-list-card-switch:hover, .contributors-preview:hover, .card-action:not(.custom):hover, .contributor-list>li:hover, .kanban-themed-button:hover {
     opacity: 1;
     background-color: var(--ds-surface-raised-pressed, #dcdfe4);
 }

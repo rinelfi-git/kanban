@@ -16,6 +16,10 @@
         body {
             height: 100vh;
         }
+
+        .menamena {
+            background-color: red !important;
+        }
     </style>
     <script>
         $(function () {
@@ -35,7 +39,7 @@
                     actions: [
                         {icon: 'fa fa-commenting', badge: '0', action: 'onCardCommentClick', bstooltip: {text: 'Rija'}},
                         {icon: 'fa fa-picture-o', badge: '0', action: 'onCardPictureClick', hideCondition: {badge: '0'}},
-                        {icon: 'fa fa-thumb-tack', badge: '0/0', action: 'onCardTaskClick'},
+                        {badge: '0/0', className: 'menamena'},
                     ]
                 }
             ];

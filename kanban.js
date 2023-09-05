@@ -219,6 +219,7 @@
                     class: 'card-action',
                     html
                 });
+                if(typeof oneAction.className !== 'undefined' && oneAction.className.length > 0) actionDom.addClass('custom').addClass(oneAction.className);                
                 // Spécificité communecter
                 if(oneAction.bstooltip) {
                     actionDom.attr('data-toggle', 'tooltip').attr('data-placement', oneAction.bstooltip.position).attr('data-original-title', oneAction.bstooltip.text.replace(/"/g, '&quot;'));
