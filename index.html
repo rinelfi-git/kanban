@@ -25,10 +25,12 @@
         $(function () {
             var data = [
                 {
+                    id: 'number1',
                     title: 'Une action à faire',
                     header: 'todiscuss'
                 },
                 {
+                    id: 'number2',
                     title: 'Première',
                     position: 8,
                     header: 'todiscuss',
@@ -72,13 +74,12 @@
                     console.log('Rinelfi update at', updated);
                 },
                 onCardInsert(inserted) {
-                    inserted.id = 'Olona';
                     inserted.actions = [
                         {icon: 'fa fa-commenting', badge: '0', action: 'onCardCommentClick'},
                         {icon: 'fa fa-picture-o', badge: '0', action: 'onCardPictureClick'},
                         {icon: 'fa fa-thumb-tack', badge: '0/0', action: 'onCardTaskClick', condition: {badge: '0/0'}},
                     ];
-                    kanbanDom.kanban('setData', {column: inserted.header, index: inserted.position, data: inserted});
+                    kanbanDom.kanban('setData', {column: inserted.header, id: inserted.id, data: inserted});
                     console.log('new insertion', inserted);
                 },
                 onCardDrop(dropped, updates) {

@@ -16,6 +16,7 @@
             var settings = Context.data('settings');
             var oldColumn = self.data('column');
             var newColumn = self.parents('.kanban-list-wrapper').data('column');
+            var data = getDataFromCard(Context, self);
             self.attr('data-column', newColumn);
             self.data('column', newColumn);
             self.find('.kanban-list-card-edit').attr('data-column', newColumn).data('column', newColumn);
@@ -24,10 +25,12 @@
             var newIndex = columnKanbanDoms.index(self);
             var newDataMatrix = $.extend({}, Context.data('matrix'));
 
-            var data = newDataMatrix[oldColumn][oldIndex];
+            var matrixOldIndex = newDataMatrix[oldColumn].findIndex(function (datum) {
+                datum.id === data.id;
+            });
             data.header = newColumn;
             data.position = newIndex;
-            newDataMatrix[oldColumn].splice(oldIndex, 1);
+            newDataMatrix[oldColumn].splice(matrixOldIndex, 1);
 
             if (newIndex >= newDataMatrix[newColumn].length) newDataMatrix[newColumn].push(data);
             else newDataMatrix[newColumn].splice(newIndex, 0, data);
@@ -43,12 +46,118 @@
             }
             newDataMatrix[oldColumn] = oldDataList;
             newDataMatrix[newColumn] = newDataList;
-
+            var filter = Context.data('filter');
             Context.data('matrix', newDataMatrix);
+            newDataMatrix = filterMatrixBy(newDataMatrix, filter);
+
             Context.find(`.card-counter[data-column=${oldColumn}]`).text(newDataMatrix[oldColumn].length);
             Context.find(`.card-counter[data-column=${newColumn}]`).text(newDataMatrix[newColumn].length);
             if (typeof settings.onCardDrop === 'function') settings.onCardDrop({ data, origin: oldColumn, target: newColumn }, { origin: oldDataList, target: newDataList });
         }
+    }
+
+    function addCardClicked() {
+        var self = $(this);
+        var Context = self.data('context');
+        var settings = Context.data('settings');
+        var textArea = self.parents('.card-composer').find('.js-card-title');
+        var matrix = $.extend({}, Context.data('matrix'));
+        if (textArea.val()) {
+            var column = self.data('column');
+            switch (self.data('action')) {
+                case 'update':
+                    var index = parseInt(self.data('target'), 10);
+                    var cardDetailDom = Context.find('.kanban-list-card-detail[data-column=' + column + ']').eq(index);
+                    $(`[data-column="${column}"] .kanban-list-card-title`).eq(index).text(textArea.val());
+                    var oldValue = getDataFromCard(Context, cardDetailDom);
+                    var newValue = $.extend({}, oldValue);
+                    newValue.title = textArea.val();
+                    var realIndex = matrix[column].findIndex(function(data) {
+                        return data.id === oldValue.id;
+                    });
+                    matrix[column][realIndex] = newValue;
+                    Context.data('matrix', matrix);
+
+                    var filter = Context.data('filter');
+                    matrix = filterMatrixBy(matrix, filter);
+                    if (typeof settings.onCardUpdate === 'function') settings.onCardUpdate({ oldValue, newValue });
+                    buildCards(Context, matrix);
+                    bindDragAndDropEvents(Context, _dragAndDropManager);
+                    if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
+                    break;
+                case 'insert':
+                    var cardsContainerDom = $(`#kanban-wrapper-${column} .kanban-list-cards`);
+                    var newData = {
+                        id: (new Date).getTime(),
+                        header: column,
+                        title: textArea.val(),
+                        position: cardsContainerDom.children().length - 1,
+                        contributors: [],
+                        actions: []
+                    };
+                    matrix[column].push(newData);
+                    Context.data('matrix', matrix);
+
+                    var filter = Context.data('filter');
+                    var filteredMatrix = filterMatrixBy(matrix, filter);
+                    var index = filteredMatrix[column].findIndex(function(data) {
+                        return data.id === newData.id;
+                    });
+                    if(index >= 0) {
+                        cardsContainerDom.append(buildCard({
+                            text: textArea.val(),
+                            contributors: newData.contributors,
+                            column,
+                            editable: settings.editable,
+                            actions: newData.actions,
+                            actionConditionEnabled: settings.actionConditionEnabled
+                        }));
+                        Context.find(`.card-counter[data-column=${column}]`).text(filteredMatrix[column].length);
+                    }
+
+                    if (typeof settings.onCardInsert === 'function') settings.onCardInsert(newData);
+                    bindDragAndDropEvents(Context, _dragAndDropManager);
+                    if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
+                    break;
+            }
+            $('.js-cancel').trigger('click');
+            Context.find('.kanban-list-wrapper').trigger('editor-close');
+            $('.kanban-overlay.active').trigger('click');
+        }
+    }
+
+    function filterMatrixBy(matrix, criterias) {
+        var temporaryMatrix = {};
+        var column;
+        if (typeof criterias.columns !== 'undefined' && Array.isArray(criterias.columns)) {
+            for (column in matrix) {
+                if (criterias.columns.include(column)) temporaryMatrix[column] = matrix[column];
+            }
+            matrix = $.extend(true, {}, temporaryMatrix);
+            temporaryMatrix = {};
+        }
+        if (typeof criterias.card !== 'undefined' && criterias.card.length > 0) {
+            for (column in matrix) {
+                temporaryMatrix[column] = matrix[column].filter(function (data) {
+                    var regex = new RegExp(criterias.card, 'ig');
+                    return data.title.match(regex);
+                });
+            }
+            matrix = $.extend(true, {}, temporaryMatrix);
+            temporaryMatrix = {};
+        }
+        if (typeof criterias.contributors !== 'undefined') {
+            for (column in matrix) {
+                temporaryMatrix[column] = matrix[column].filter(function (data) {
+                    return typeof data.contributors !== 'undefined' && data.contributors.some(function (someContributor) {
+                        return typeof someContributor.id !== 'undefined' && (Array.isArray(criterias.contributors) && criterias.contributors.includes(someContributor.id) || criterias.contributors === someContributor.id);
+                    });
+                });
+            }
+            matrix = $.extend(true, {}, temporaryMatrix);
+            temporaryMatrix = {};
+        }
+        return matrix;
     }
 
     function loadTranslation(language, from) {
@@ -136,10 +245,11 @@
     }
 
     function getDataFromCard(Context, cardDom) {
+        var filter = Context.data('filter');
         var column = cardDom.data('column');
         var index = cardDom.parents('.kanban-list-cards').find('.kanban-list-card-detail').index(cardDom);
-        var data = $.extend({}, Context.data('matrix'));
-        return data[column][index];
+        var filteredMatrix = filterMatrixBy(Context.data('matrix'), filter);
+        return filteredMatrix[column][index];
     }
 
     function buildContributorsDropdown(contributorsList) {
@@ -464,13 +574,34 @@
 
     function deleteData(Context, coordinates) {
         var matrix = $.extend({}, Context.data('matrix'));
-        matrix[coordinates.column].splice(coordinates.index, 1);
+        if (typeof coordinates === 'object' && typeof coordinates.index !== 'undefined') {
+            matrix[coordinates.column].splice(coordinates.index, 1);
+        } else if (typeof coordinates === 'object' && typeof coordinates.id !== 'undefined') {
+            var index = matrix[coordinates.column].findIndex(function (data) {
+                return data.id === coordinates.id;
+            });
+            matrix[coordinates.column].splice(index, 1);
+        } else {
+            for (var column in matrix) {
+                var index = matrix[column].findIndex(function (data) {
+                    return data.id === coordinates;
+                });
+                if (index >= 0) {
+                    matrix[column].splice(index, 1);
+                    break;
+                }
+            }
+        }
+
         Context.data('matrix', matrix);
     }
 
     function buildColumns(Context) {
         var settings = Context.data('settings');
-        $.each(Context.data('matrix'), function (oneHeaderKey) {
+        var matrix = Context.data('matrix');
+        var filter = Context.data('filter');
+        matrix = filterMatrixBy(matrix, filter);
+        $.each(matrix, function (oneHeaderKey) {
             if (Context.find(`kanban-list-wrapper[data-column=${oneHeaderKey}]`).length > 0) return false;
             var oneHeader = settings.headers.find(oneHeaderFind => oneHeaderFind.id === oneHeaderKey);
             var kanbanListWrapperDom = $('<div>', {
@@ -572,17 +703,14 @@
                 var column = wrapperDom.data('column');
                 wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(Context, column)).scrollTop(0);
                 wrapperDom.find('.js-card-title').focus();
+                wrapperDom.find('.js-add-card').data('context', Context);
             }
         }).on('click', '.kanban-list-card-detail:not(.dragging)', function (event) {
             event.stopPropagation();
             var parentsDomList = ['.contributor-container', '.kanban-footer-card', '.kanban-list-card-action'];
             if (parentsDomList.some(function (oneParentDom) { return $(event.target).parents(oneParentDom).length > 0 })) return false;
             var self = $(this);
-            var columnId = self.data('column');
-            var columnKanbanDoms = $('.kanban-list-card-detail[data-column="' + columnId + '"]');
-            var cardIndex = columnKanbanDoms.index(this);
-            var matrix = $.extend({}, Context.data('matrix'));
-            var data = matrix[columnId][cardIndex];
+            var data = getDataFromCard(Context, self);
             if (typeof settings.onCardClick === 'function') settings.onCardClick(data);
         }).on('click', '.kanban-list-card-detail:not(.dragging) .kanban-list-card-edit', function (event) {
             event.stopPropagation();
@@ -590,8 +718,7 @@
             var columnId = self.data('column');
             var columnKanbanDoms = $('.kanban-list-card-edit[data-column="' + columnId + '"]');
             var cardIndex = columnKanbanDoms.index(self);
-            var matrix = $.extend({}, Context.data('matrix'));
-            var data = matrix[columnId][cardIndex];
+            var data = getDataFromCard(Context, self.parents('.kanban-list-card-detail'));
             if (typeof settings.onEditCardOpen === 'function') settings.onEditCardOpen(data);
 
             var parentCardDom = self.parents('.kanban-list-card-detail');
@@ -612,6 +739,7 @@
                 column: columnId,
                 index: cardIndex
             })).addClass('active');
+            overlayDom.find('.js-add-card').data('context', Context);
             var textAreaDom = overlayDom.find('textarea');
             textAreaDom.focus();
             textAreaDom.select();
@@ -657,50 +785,8 @@
             var wrapperDom = $('#kanban-wrapper-' + columnId);
             wrapperDom.find('.kanban-list-cards').append(buildNewCardInput(Context, columnId));
             wrapperDom.find('.js-card-title').focus();
-        }).on('click', '.js-add-card', function () {
-            var self = $(this);
-            var textArea = self.parents('.card-composer').find('.js-card-title');
-            var matrix = $.extend({}, Context.data('matrix'));
-            if (textArea.val()) {
-                var column = self.data('column');
-                switch (self.data('action')) {
-                    case 'update':
-                        var index = parseInt(self.data('target'), 10);
-                        $(`[data-column="${column}"] .kanban-list-card-title`).eq(index).text(textArea.val());
-                        var oldValue = $.extend({}, matrix[column][index]);
-                        matrix[column][index].title = textArea.val();
-                        var newValue = matrix[column][index];
-                        Context.data('matrix', matrix);
-                        if (typeof settings.onCardUpdate === 'function') settings.onCardUpdate({ oldValue, newValue });
-                        break;
-                    case 'insert':
-                        var cardsContainerDom = $(`#kanban-wrapper-${column} .kanban-list-cards`);
-                        cardsContainerDom.append(buildCard({
-                            text: textArea.val(),
-                            contributors: [],
-                            column,
-                            editable: settings.editable,
-                            actions: [],
-                            actionConditionEnabled: settings.actionConditionEnabled
-                        }));
-                        var newData = {
-                            header: column,
-                            title: textArea.val(),
-                            position: cardsContainerDom.children().length - 2,
-                            contributors: []
-                        };
-                        matrix[column].push(newData);
-                        Context.find(`.card-counter[data-column=${column}]`).text(matrix[column].length);
-                        Context.data('matrix', matrix);
-                        if (typeof settings.onCardInsert === 'function') settings.onCardInsert(newData);
-                        bindDragAndDropEvents(Context, _dragAndDropManager);
-                        break;
-                }
-                $('.js-cancel').trigger('click');
-                Context.find('.kanban-list-wrapper').trigger('editor-close');
-                $('.kanban-overlay.active').trigger('click');
-            }
-        }).on('click', '.kanban-action-dropdown .dropdown-trigger', function () {
+            wrapperDom.find('.js-add-card').data('context', Context);
+        }).on('click', '.js-add-card', addCardClicked).on('click', '.kanban-action-dropdown .dropdown-trigger', function () {
             $(this).next('.dropdown-list').toggleClass('open');
         }).on('click', '.kanban-action-dropdown .dropdown-list.open .dropdown-item', function () {
             var self = $(this);
@@ -710,6 +796,7 @@
                     var column = wrapperDom.data('column');
                     wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(Context, column)).scrollTop(0);
                     wrapperDom.find('.js-card-title').focus();
+                    wrapperDom.find('.js-add-card').data('context', Context);
                     break;
                 case 'column-rename':
                     var wrapperDom = self.parents('.kanban-list-wrapper');
@@ -760,20 +847,28 @@
         });
         Context.addClass('kanban-initialized');
 
+        var kanbanOverlayDom
         if ($('.kanban-overlay').length === 0) {
-            var kanbanOverlayDom = $('<div>', { class: 'kanban-overlay' });
-            kanbanOverlayDom.on('click', function (event) {
-                if (event.target !== this) return;
-                var self = $(this);
-                if (!self.hasClass('active')) return;
-                self.removeClass('active');
-                self.empty();
-                $('.card-composer').remove();
-                $('.kanban-list-card-detail[data-column]:hidden').css('display', '');
-                Context.css('overflow-x', '');
-            });
+            kanbanOverlayDom = $('<div>', { class: 'kanban-overlay' });
             $(document.body).prepend(kanbanOverlayDom);
-        }
+        } else kanbanOverlayDom = $('.kanban-overlay');
+
+        kanbanOverlayDom.on('click', function (event) {
+            if (event.target !== this) return;
+            var self = $(this);
+            if (!self.hasClass('active')) return;
+            self.removeClass('active');
+            self.empty();
+            $('.card-composer').remove();
+            $('.kanban-list-card-detail[data-column]:hidden').css('display', '');
+            Context.css('overflow-x', '');
+        }).on('click', '.js-add-card', addCardClicked).on('keydown', '.card-composer', function (event) {
+            if (event.originalEvent.key === 'Enter') {
+                event.preventDefault();
+                $(this).find('.js-add-card').trigger('click');
+            }
+        });
+
         if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
     }
 
@@ -796,6 +891,7 @@
         var Self = this;
         Self.data('matrix', typeof Self.data('matrix') === 'object' ? Self.data('matrix') : {});
         Self.data('settings', typeof Self.data('settings') === 'object' ? Self.data('settings') : {});
+        Self.data('filter', typeof Self.data('filter') === 'object' ? Self.data('filter') : {});
         if (typeof options === 'object') {
             var defaultOptions = {
                 headers: [],
@@ -815,22 +911,33 @@
             switch (options) {
                 case 'setData':
                     var matrixData = $.extend({}, Self.data('matrix'));
-                    var oldData = matrixData[argument.column][argument.index];
+                    var index = matrixData[argument.column].findIndex(function(data) {
+                        return data.id === argument.id;
+                    })
+                    var oldData = matrixData[argument.column][index];
                     var data = $.extend({}, oldData, argument.data);
-                    matrixData[argument.column][argument.index] = data;
+                    matrixData[argument.column][index] = data;
                     Self.data('matrix', matrixData);
-                    buildCards(Self);
+                    var filter = Self.data('filter');
+                    matrixData = filterMatrixBy(matrixData, filter);
+                    buildCards(Self, matrixData);
                     bindDragAndDropEvents(Self, _dragAndDropManager);
                     if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
                     break;
                 case 'addData':
                     addData(Self, Array.isArray(argument) ? argument : [argument]);
-                    buildCards(Self);
+                    var matrix = Self.data('matrix');
+                    var filter = Self.data('filter');
+                    matrix = filterMatrixBy(matrix, filter);
+                    buildCards(Self, matrix);
                     bindDragAndDropEvents(Self, _dragAndDropManager);
                     if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
                 case 'deleteData':
                     deleteData(Self, argument);
-                    buildCards(Self);
+                    var matrix = Self.data('matrix');
+                    var filter = Self.data('filter');
+                    matrix = filterMatrixBy(matrix, filter);
+                    buildCards(Self, matrix);
                     bindDragAndDropEvents(Self, _dragAndDropManager);
                     if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
                     break;
@@ -839,39 +946,10 @@
                     return matrixData[argument.column][argument.index];
                     break;
                 case 'filter':
+                    var filter = argument;
                     var matrix = $.extend({}, Self.data('matrix'));
-                    console.log('matrix', matrix);
-                    var temporaryMatrix = {};
-                    var column;
-                    if (typeof argument.columns !== 'undefined' && Array.isArray(argument.columns)) {
-                        for (column in matrix) {
-                            if (argument.columns.include(column)) temporaryMatrix[column] = matrix[column];
-                        }
-                        matrix = $.extend(true, {}, temporaryMatrix);
-                        temporaryMatrix = {};
-                    }
-                    if (typeof argument.card !== 'undefined' && argument.card.length > 0) {
-                        for (column in matrix) {
-                            temporaryMatrix[column] = matrix[column].filter(function (data) {
-                                var regex = new RegExp(argument.card, 'ig');
-                                return data.title.match(regex);
-                            });
-                        }
-                        matrix = $.extend(true, {}, temporaryMatrix);
-                        temporaryMatrix = {};
-                    }
-                    console.log('contributor', typeof argument.contributors);
-                    if (typeof argument.contributors !== 'undefined') {
-                        for (column in matrix) {
-                            temporaryMatrix[column] = matrix[column].filter(function (data) {
-                                return typeof data.contributors !== 'undefined' && data.contributors.some(function (someContributor) {
-                                    return typeof someContributor.id !== 'undefined' && (Array.isArray(argument.contributors) && argument.contributors.include(someContributor.id) || argument.contributors === someContributor.id);
-                                });
-                            });
-                        }
-                        matrix = $.extend(true, {}, temporaryMatrix);
-                        temporaryMatrix = {};
-                    }
+                    Self.data('filter', filter);
+                    matrix = filterMatrixBy(matrix, filter);
                     buildCards(Self, matrix);
                     bindDragAndDropEvents(Self, _dragAndDropManager);
                     if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
