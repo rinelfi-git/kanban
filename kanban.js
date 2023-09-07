@@ -138,7 +138,7 @@
     function getDataFromCard(Context, cardDom) {
         var column = cardDom.data('column');
         var index = cardDom.parents('.kanban-list-cards').find('.kanban-list-card-detail').index(cardDom);
-        var data = Context.data('matrix')
+        var data = $.extend({}, Context.data('matrix'));
         return data[column][index];
     }
 
@@ -424,7 +424,7 @@
 
     function addColumns(Context, headers) {
         $.each(headers, function (_, oneHeader) {
-            var matrix = Context.data('matrix');
+            var matrix = $.extend({}, Context.data('matrix'));
             var settings = Context.data('settings');
             function findHeader(oneHeaderFind) {
                 return oneHeaderFind.id === oneHeader.id;
@@ -445,7 +445,7 @@
             return $.extend(true, {}, defaultDadum, datumMap);
         });
         $.each(compiledDataList, function (_, dataLine) {
-            var matrix = Context.data('matrix');
+            var matrix = $.extend({}, Context.data('matrix'));
             if (typeof matrix[dataLine.header] === 'undefined' || !Array.isArray(matrix[dataLine.header])) matrix[dataLine.header] = [];
             if (typeof dataLine.position === 'number') {
                 if (dataLine.position >= matrix[dataLine.header].length || dataLine.position < 0) matrix[dataLine.header].push(dataLine);
@@ -463,7 +463,7 @@
     }
 
     function deleteData(Context, coordinates) {
-        var matrix = Context.data('matrix');
+        var matrix = $.extend({}, Context.data('matrix'));
         matrix[coordinates.column].splice(coordinates.index, 1);
         Context.data('matrix', matrix);
     }
@@ -518,9 +518,10 @@
         })
     }
 
-    function buildCards(Context) {
+    function buildCards(Context, matrix) {
         var settings = Context.data('settings');
-        $.each(Context.data('matrix'), function (column, oneMatrixData) {
+        if (typeof matrix === 'undefined') { matrix = $.extend({}, Context.data('matrix')); }
+        $.each(matrix, function (column, oneMatrixData) {
             var listCardDom = Context.find('#kanban-wrapper-' + column + ' .kanban-list-cards');
             Context.find(`.kanban-list-header .card-counter[data-column=${column}]`).text(oneMatrixData.length);
             listCardDom.children().remove();
@@ -580,7 +581,7 @@
             var columnId = self.data('column');
             var columnKanbanDoms = $('.kanban-list-card-detail[data-column="' + columnId + '"]');
             var cardIndex = columnKanbanDoms.index(this);
-            var matrix = Context.data('matrix');
+            var matrix = $.extend({}, Context.data('matrix'));
             var data = matrix[columnId][cardIndex];
             if (typeof settings.onCardClick === 'function') settings.onCardClick(data);
         }).on('click', '.kanban-list-card-detail:not(.dragging) .kanban-list-card-edit', function (event) {
@@ -589,7 +590,7 @@
             var columnId = self.data('column');
             var columnKanbanDoms = $('.kanban-list-card-edit[data-column="' + columnId + '"]');
             var cardIndex = columnKanbanDoms.index(self);
-            var matrix = Context.data('matrix');
+            var matrix = $.extend({}, Context.data('matrix'));
             var data = matrix[columnId][cardIndex];
             if (typeof settings.onEditCardOpen === 'function') settings.onEditCardOpen(data);
 
@@ -625,7 +626,7 @@
             var columnId = self.data('column');
             var columnKanbanDoms = $('.kanban-list-card-switch[data-column="' + columnId + '"]');
             var cardIndex = columnKanbanDoms.index(self);
-            var matrix = Context.data('matrix');
+            var matrix = $.extend({}, Context.data('matrix'));
             var data = matrix[columnId][cardIndex];
             if (typeof settings.onMoveCardOpen === 'function') settings.onMoveCardOpen(data);
             var overlayDom = $('.kanban-overlay');
@@ -659,7 +660,7 @@
         }).on('click', '.js-add-card', function () {
             var self = $(this);
             var textArea = self.parents('.card-composer').find('.js-card-title');
-            var matrix = Context.data('matrix');
+            var matrix = $.extend({}, Context.data('matrix'));
             if (textArea.val()) {
                 var column = self.data('column');
                 switch (self.data('action')) {
@@ -773,7 +774,7 @@
             });
             $(document.body).prepend(kanbanOverlayDom);
         }
-        if(typeof settings.onRenderDone === 'function') settings.onRenderDone();
+        if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
     }
 
     function initKanban(Context) {
@@ -813,29 +814,67 @@
             var settings = Self.data('settings');
             switch (options) {
                 case 'setData':
-                    var matrixData = Self.data('matrix');
+                    var matrixData = $.extend({}, Self.data('matrix'));
                     var oldData = matrixData[argument.column][argument.index];
                     var data = $.extend({}, oldData, argument.data);
                     matrixData[argument.column][argument.index] = data;
                     Self.data('matrix', matrixData);
                     buildCards(Self);
                     bindDragAndDropEvents(Self, _dragAndDropManager);
-                    if(typeof settings.onRenderDone === 'function') settings.onRenderDone();
+                    if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
                     break;
                 case 'addData':
                     addData(Self, Array.isArray(argument) ? argument : [argument]);
                     buildCards(Self);
                     bindDragAndDropEvents(Self, _dragAndDropManager);
-                    if(typeof settings.onRenderDone === 'function') settings.onRenderDone();
+                    if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
                 case 'deleteData':
                     deleteData(Self, argument);
                     buildCards(Self);
                     bindDragAndDropEvents(Self, _dragAndDropManager);
-                    if(typeof settings.onRenderDone === 'function') settings.onRenderDone();
+                    if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
                     break;
                 case 'getData':
-                    var matrixData = Self.data('matrix');
+                    var matrixData = $.extend({}, Self.data('matrix'));
                     return matrixData[argument.column][argument.index];
+                    break;
+                case 'filter':
+                    var matrix = $.extend({}, Self.data('matrix'));
+                    console.log('matrix', matrix);
+                    var temporaryMatrix = {};
+                    var column;
+                    if (typeof argument.columns !== 'undefined' && Array.isArray(argument.columns)) {
+                        for (column in matrix) {
+                            if (argument.columns.include(column)) temporaryMatrix[column] = matrix[column];
+                        }
+                        matrix = $.extend(true, {}, temporaryMatrix);
+                        temporaryMatrix = {};
+                    }
+                    if (typeof argument.card !== 'undefined' && argument.card.length > 0) {
+                        for (column in matrix) {
+                            temporaryMatrix[column] = matrix[column].filter(function (data) {
+                                var regex = new RegExp(argument.card, 'ig');
+                                return data.title.match(regex);
+                            });
+                        }
+                        matrix = $.extend(true, {}, temporaryMatrix);
+                        temporaryMatrix = {};
+                    }
+                    console.log('contributor', typeof argument.contributors);
+                    if (typeof argument.contributors !== 'undefined') {
+                        for (column in matrix) {
+                            temporaryMatrix[column] = matrix[column].filter(function (data) {
+                                return typeof data.contributors !== 'undefined' && data.contributors.some(function (someContributor) {
+                                    return typeof someContributor.id !== 'undefined' && (Array.isArray(argument.contributors) && argument.contributors.include(someContributor.id) || argument.contributors === someContributor.id);
+                                });
+                            });
+                        }
+                        matrix = $.extend(true, {}, temporaryMatrix);
+                        temporaryMatrix = {};
+                    }
+                    buildCards(Self, matrix);
+                    bindDragAndDropEvents(Self, _dragAndDropManager);
+                    if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
                     break;
             }
         }

@@ -33,8 +33,8 @@
                     position: 8,
                     header: 'todiscuss',
                     contributors: [
-                        { name: 'Rijaniaina', image: 'https://2.gravatar.com/avatar/68745922c85aa7573484210c43638065', data: {id: 123} },
-                        { name: 'Rijaniaina Elie Fidèle Rijaniaina Elie Fidèle Rijaniaina Elie Fidèle ', image: 'https://2.gravatar.com/avatar/68745922c85aa7573484210c43638065' },
+                        { id: 1, name: 'Rijaniaina', image: 'https://2.gravatar.com/avatar/68745922c85aa7573484210c43638065', data: {id: 123} },
+                        { id: 2, name: 'Rijaniaina Elie Fidèle Rijaniaina Elie Fidèle Rijaniaina Elie Fidèle ', image: 'https://2.gravatar.com/avatar/68745922c85aa7573484210c43638065' },
                     ],
                     actions: [
                         {icon: 'fa fa-commenting', badge: '0', action: 'onCardCommentClick', bstooltip: {text: 'Rija'}},
@@ -96,9 +96,10 @@
                     kanbanDom.kanban('deleteData', {column: action.header, index: index});
                 },
                 onRenderDone() {
-                    alert(kanbanDom.html());
+                    
                 }
             });
+            
         });
     </script>
 </head>
