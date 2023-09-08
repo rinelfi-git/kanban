@@ -92,6 +92,8 @@
                         header: column,
                         title: textArea.val(),
                         position: cardsContainerDom.children().length - 1,
+                        editable: settings.editable,
+                        html: false,
                         contributors: [],
                         actions: []
                     };
@@ -105,12 +107,8 @@
                     });
                     if(index >= 0) {
                         cardsContainerDom.append(buildCard({
-                            text: textArea.val(),
-                            contributors: newData.contributors,
-                            column,
-                            editable: settings.editable,
-                            actions: newData.actions,
-                            actionConditionEnabled: settings.actionConditionEnabled
+                            data: newData,
+                            settings: settings
                         }));
                         Context.find(`.card-counter[data-column=${column}]`).text(filteredMatrix[column].length);
                     }
@@ -248,7 +246,8 @@
         var filter = Context.data('filter');
         var column = cardDom.data('column');
         var index = cardDom.parents('.kanban-list-cards').find('.kanban-list-card-detail').index(cardDom);
-        var filteredMatrix = filterMatrixBy(Context.data('matrix'), filter);
+        var matrix = Context.data('matrix');
+        var filteredMatrix = filterMatrixBy(matrix, filter);
         return filteredMatrix[column][index];
     }
 
@@ -284,24 +283,29 @@
     }
 
     function buildCard(options) {
+        var data= options.data;
+        var settings = options.settings;
         var listCardDetailContainer = $('<div>', {
             class: 'kanban-list-card-detail',
-            'data-column': options.column
+            'data-column': data.header
         });
 
         var listCardDetailText = $('<span>', {
-            class: 'kanban-list-card-title',
-            text: options.text
+            class: 'kanban-list-card-title'
         });
+
+        if(data.html) listCardDetailText.html(data.title);
+        else listCardDetailText.text(data.title);
+
         var listCardDetailSwitch = $('<button>', {
             class: 'kanban-list-card-switch',
             html: '<span class="fa fa-arrows-h"></span>',
-            'data-column': options.column
+            'data-column': data.header
         });
         var listCardDetailEdit = $('<button>', {
             class: 'kanban-list-card-edit',
             html: '<span class="fa fa-pencil"></span>',
-            'data-column': options.column
+            'data-column': data.header
         });
         var cardActionDom = $('<div>', {
             class: 'kanban-list-card-action'
@@ -311,14 +315,14 @@
         });
         var contributorDom = $('<button>', {
             class: 'contributors-preview',
-            html: `${options.contributors.length} <span class="fa fa-users"></span>`
+            html: `${data.contributors.length} <span class="fa fa-users"></span>`
         });
-        if (options.editable) cardActionDom.append(listCardDetailEdit);
-        if (typeof options.actions === 'object' && Array.isArray(options.actions)) {
-            $.each(options.actions, function (_, oneAction) {
+        if (settings.editable && data.editable) cardActionDom.append(listCardDetailEdit);
+        if (data.actions.length) {
+            $.each(data.actions, function (_, oneAction) {
                 var html = '';
                 if (typeof oneAction.icon === 'undefined' && typeof oneAction.badge === 'undefined') return true;
-                if (options.actionConditionEnabled && typeof oneAction.hideCondition !== 'undefined') {
+                if (settings.actionConditionEnabled && typeof oneAction.hideCondition !== 'undefined') {
                     var interrupt = false;
                     for (var key in oneAction.hideCondition) { if (typeof oneAction[key] !== 'undefined' && oneAction[key] === oneAction.hideCondition[key]) interrupt = true; }
                     if (interrupt) return true;
@@ -346,8 +350,8 @@
             .append(listCardDetailText)
             .append(cardActionDom)
             .append(cardFooterDom);
-        if (options.contributors.length) {
-            listCardDetailContainer.append(buildContributorsDropdown(options.contributors))
+        if (data.contributors.length) {
+            listCardDetailContainer.append(buildContributorsDropdown(data.contributors))
         }
         return listCardDetailContainer;
     }
@@ -547,9 +551,13 @@
     }
 
     function addData(Context, data) {
+        var settings = Context.data('settings');
         var compiledDataList = data.map(function (datumMap) {
             var defaultDadum = {
                 id: Math.floor(Math.random() * Date.now()),
+                html: false,
+                editable: settings.editable,
+                actions: [],
                 contributors: []
             };
             return $.extend(true, {}, defaultDadum, datumMap);
@@ -658,12 +666,8 @@
             listCardDom.children().remove();
             $.each(oneMatrixData, function (_, oneMatrixDatum) {
                 listCardDom.append(buildCard({
-                    column: oneMatrixDatum.header,
-                    text: oneMatrixDatum.title,
-                    contributors: oneMatrixDatum.contributors,
-                    editable: settings.editable,
-                    actions: oneMatrixDatum.actions,
-                    actionConditionEnabled: settings.actionConditionEnabled
+                    data: oneMatrixDatum,
+                    settings: settings
                 }));
             });
         });
