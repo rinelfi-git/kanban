@@ -759,7 +759,9 @@
             var columnId = self.data('column');
             var columnKanbanDoms = $('.kanban-list-card-switch[data-column="' + columnId + '"]');
             var cardIndex = columnKanbanDoms.index(self);
-            var matrix = $.extend({}, Context.data('matrix'));
+            var matrix = Context.data('matrix');
+            var filter = Context.data('filter');
+            matrix = filterMatrixBy(matrix, filter);
             var data = matrix[columnId][cardIndex];
             if (typeof settings.onMoveCardOpen === 'function') settings.onMoveCardOpen(data);
             var overlayDom = $('.kanban-overlay');
