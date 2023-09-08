@@ -25,12 +25,12 @@
             var newIndex = columnKanbanDoms.index(self);
             var newDataMatrix = $.extend({}, Context.data('matrix'));
 
-            var matrixOldIndex = newDataMatrix[oldColumn].findIndex(function (datum) {
-                datum.id === data.id;
+            var dataIndex = newDataMatrix[oldColumn].findIndex(function (datum) {
+                return datum.id === data.id;
             });
             data.header = newColumn;
             data.position = newIndex;
-            newDataMatrix[oldColumn].splice(matrixOldIndex, 1);
+            newDataMatrix[oldColumn].splice(dataIndex, 1);
 
             if (newIndex >= newDataMatrix[newColumn].length) newDataMatrix[newColumn].push(data);
             else newDataMatrix[newColumn].splice(newIndex, 0, data);
@@ -612,6 +612,7 @@
         $.each(matrix, function (oneHeaderKey) {
             if (Context.find(`kanban-list-wrapper[data-column=${oneHeaderKey}]`).length > 0) return false;
             var oneHeader = settings.headers.find(oneHeaderFind => oneHeaderFind.id === oneHeaderKey);
+            if(typeof oneHeader === 'undefined') return true;
             var kanbanListWrapperDom = $('<div>', {
                 class: 'kanban-list-wrapper',
                 id: 'kanban-wrapper-' + oneHeader.id,
