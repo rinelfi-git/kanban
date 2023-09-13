@@ -62,12 +62,10 @@
 
     function moveCard(Context, cardDom, from, to, at) {
         var listCardContainerDom = Context.find('.kanban-list-wrapper[data-column=' + to + '] .kanban-list-cards');
-        var elementNumber = listCardContainerDom.children().length;
-        var isSameColumn = from === to;
-        if (!isSameColumn && elementNumber === at || isSameColumn && elementNumber - 1 === at) {
-            listCardContainerDom.append(cardDom);
+        if (listCardContainerDom.children().eq(at).length) {
+            listCardContainerDom.children().eq(at).after(cardDom);
         } else {
-            listCardContainerDom.children().eq(at).before(cardDom);
+            listCardContainerDom.append(cardDom);
         }
     }
 
@@ -937,7 +935,6 @@
                     } else {
                         for (column in matrixData) {
                             index = matrixData[column].findIndex(function (datum) {
-                                console.log('match', datum.id, argument.id, datum.id === argument.id);
                                 return datum.id === argument.id;
                             });
                             if (index >= 0) {
@@ -994,7 +991,24 @@
                     break;
                 case 'moveCard':
                     var cardDom = $('.kanban-list-card-detail[data-id=' + argument.id + ']');
-                    var column = cardDom.data('column');
+                    var column;
+                    if (cardDom.length) {
+                        column = cardDom.data('column');
+                    } else {
+                        var matrix = Self.data('matrix');
+                        var index;
+                        for(column in matrix) {
+                            index = matrix[column].findIndex(function(datum) {
+                                return datum.id === argument.id;
+                            });
+                            if(index >= 0){
+                                break;
+                            }
+                        }
+                        var data = matrix[column][index];
+                        cardDom = buildCard({data: data, settings: settings});
+                        cardDom.hide();
+                    }
                     moveCard(Self, cardDom, column, argument.target, argument.position);
                     _dragAndDropManager.onCardDrop(cardDom, Self, typeof argument.notify === 'boolean' ? argument.notify : false);
                     break;
