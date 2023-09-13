@@ -490,7 +490,7 @@
                     console.log('new insertion', inserted);
                 },
                 onCardDrop(dropped, updates) {
-                    console.log('Rinelfi drop at', dropped, updates, $('#kanban').data('matrix'));
+                    // console.log('Rinelfi drop at', dropped, updates, $('#kanban').data('matrix'));
                 },
                 onHeaderChange(changed) {
                     console.log(changed);
@@ -503,8 +503,8 @@
                     var index = kanbanDom.find(`[data-column=${action.header}] .kanban-list-card-detail`).index(dom)
                     kanbanDom.kanban('deleteData', { column: action.header, index: index });
                 },
-                onRenderDone() {
-
+                onCardPictureClick() {
+                    alert('clicked');
                 }
             });
 

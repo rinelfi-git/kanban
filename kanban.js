@@ -4,7 +4,7 @@
     };
 
     var _dragSubstituteDom = $('<div>', {
-        class: 'kanban-list-card-detail substitute',
+        'class': 'kanban-list-card-detail substitute',
         width: outerWidth,
         height: outerHeight
     });
@@ -12,11 +12,11 @@
     var _currentLanguage;
     var _dragAndDropManager = {
         prependOnly: false,
-        onCardDrop(self, oldIndex, Context) {
+        onCardDrop(self, Context) {
             var settings = Context.data('settings');
             var oldColumn = self.data('column');
             var newColumn = self.parents('.kanban-list-wrapper').data('column');
-            var data = getDataFromCard(Context, self);
+            var data = self.data('datum');
             self.attr('data-column', newColumn);
             self.data('column', newColumn);
             self.find('.kanban-list-card-edit').attr('data-column', newColumn).data('column', newColumn);
@@ -30,6 +30,7 @@
             });
             data.header = newColumn;
             data.position = newIndex;
+            self.data('datum', data);
             newDataMatrix[oldColumn].splice(dataIndex, 1);
 
             if (newIndex >= newDataMatrix[newColumn].length) newDataMatrix[newColumn].push(data);
@@ -49,7 +50,7 @@
             var filter = Context.data('filter');
             Context.data('matrix', newDataMatrix);
             newDataMatrix = filterMatrixBy(newDataMatrix, filter);
-
+            
             Context.find(`.card-counter[data-column=${oldColumn}]`).text(newDataMatrix[oldColumn].length);
             Context.find(`.card-counter[data-column=${newColumn}]`).text(newDataMatrix[newColumn].length);
             if (typeof settings.onCardDrop === 'function') settings.onCardDrop({ data, origin: oldColumn, target: newColumn }, { origin: oldDataList, target: newDataList });
@@ -69,7 +70,7 @@
                     var index = parseInt(self.data('target'), 10);
                     var cardDetailDom = Context.find('.kanban-list-card-detail[data-column=' + column + ']').eq(index);
                     $(`[data-column="${column}"] .kanban-list-card-title`).eq(index).text(textArea.val());
-                    var oldValue = getDataFromCard(Context, cardDetailDom);
+                    var oldValue = cardDetailDom.data('datum');
                     var newValue = $.extend({}, oldValue);
                     newValue.title = textArea.val();
                     var realIndex = matrix[column].findIndex(function(data) {
@@ -276,7 +277,7 @@
                 </ul>
             `;
         var containerDom = $('<div>', {
-            class: 'contributor-container',
+            'class': 'contributor-container',
             html
         });
         return containerDom;
@@ -285,36 +286,33 @@
     function buildCard(options) {
         var data= options.data;
         var settings = options.settings;
-        var listCardDetailContainer = $('<div>', {
-            class: 'kanban-list-card-detail',
-            'data-column': data.header
-        });
+        var listCardDetailContainer = $('<div>').attr('data-column', data.header).addClass('kanban-list-card-detail').data('datum', data);
 
         var listCardDetailText = $('<span>', {
-            class: 'kanban-list-card-title'
+            'class': 'kanban-list-card-title'
         });
 
         if(data.html) listCardDetailText.html(data.title);
         else listCardDetailText.text(data.title);
 
         var listCardDetailSwitch = $('<button>', {
-            class: 'kanban-list-card-switch',
+            'class': 'kanban-list-card-switch',
             html: '<span class="fa fa-arrows-h"></span>',
             'data-column': data.header
         });
         var listCardDetailEdit = $('<button>', {
-            class: 'kanban-list-card-edit',
+            'class': 'kanban-list-card-edit',
             html: '<span class="fa fa-pencil"></span>',
             'data-column': data.header
         });
         var cardActionDom = $('<div>', {
-            class: 'kanban-list-card-action'
+            'class': 'kanban-list-card-action'
         });
         var cardFooterDom = $('<div>', {
-            class: 'kanban-footer-card'
+            'class': 'kanban-footer-card'
         });
         var contributorDom = $('<button>', {
-            class: 'contributors-preview',
+            'class': 'contributors-preview',
             html: `${data.contributors.length} <span class="fa fa-users"></span>`
         });
         if (settings.editable && data.editable) cardActionDom.append(listCardDetailEdit);
@@ -330,7 +328,7 @@
                 html = typeof oneAction.badge === 'string' ? oneAction.badge : '';
                 html = html + (typeof oneAction.icon === 'string' ? `${(html.length > 0 ? ' ' : '')} <span class="${oneAction.icon}"></span>` : '');
                 var actionDom = $('<button>', {
-                    class: 'card-action',
+                    'class': 'card-action',
                     html
                 });
                 if (typeof oneAction.className !== 'undefined' && oneAction.className.length > 0) actionDom.addClass('custom').addClass(oneAction.className);
@@ -361,7 +359,7 @@
         var position = options.position;
         var size = options.size;
         var container = $('<div>', {
-            class: 'card-composer',
+            'class': 'card-composer',
             css: {
                 position: 'fixed',
                 top: position.y,
@@ -476,8 +474,7 @@
                     self.removeClass('dragging').css({ position: '', top: '', left: '', width: '', height: '', transform: '' });
                     _dragSubstituteDom.after(self);
                     _dragSubstituteDom.detach();
-                    if (typeof events.onCardDrop === 'function') events.onCardDrop(self, self.data('index'), Context);
-                    self.removeData();
+                    if (typeof events.onCardDrop === 'function') events.onCardDrop(self, Context);
                     diffX = 0, diffY = 0, outerWidth = 0, outerHeight = 0, width = 0, height = 0;
                 }
             });
@@ -508,7 +505,7 @@
         var matrixLengthInHeader = matrixData[selectedData.header].length;
         var indexOfData = matrixData[selectedData.header].indexOf(selectedData);
         var moveCardContext = $('<div>', {
-            class: 'kanban-move-card'
+            'class': 'kanban-move-card'
         });
         moveCardContext.empty().html(`
             <h2 class="kanban-card-move-header">${translate('move the card').ucfirst()}</h2>
@@ -600,7 +597,6 @@
                 }
             }
         }
-
         Context.data('matrix', matrix);
     }
 
@@ -614,19 +610,19 @@
             var oneHeader = settings.headers.find(oneHeaderFind => oneHeaderFind.id === oneHeaderKey);
             if(typeof oneHeader === 'undefined') return true;
             var kanbanListWrapperDom = $('<div>', {
-                class: 'kanban-list-wrapper',
+                'class': 'kanban-list-wrapper',
                 id: 'kanban-wrapper-' + oneHeader.id,
                 'data-column': oneHeader.id
             });
             var kanbanListContentDom = $('<div>', {
-                class: 'kanban-list-content',
+                'class': 'kanban-list-content',
             });
             var kanbanListHeaderDom = $('<div>', {
-                class: 'kanban-list-header',
+                'class': 'kanban-list-header',
                 html: `<span class="column-header-text">${oneHeader.label}</span><input class="column-header-editor" value="${oneHeader.label}" type="text">${settings.showCardNumber ? `<span class="card-counter-container"> (<span data-column="${oneHeader.id}" class="card-counter">0</span>)</span>` : ''}`
             });
             var actionDropdownDom = $('<div>', {
-                class: 'kanban-action-dropdown',
+                'class': 'kanban-action-dropdown',
                 html: `
                     <button class="dropdown-trigger kanban-themed-button"><span class="fa fa-ellipsis-h"></span></button>
                     <ul class="dropdown-list">
@@ -636,13 +632,13 @@
                 `
             });
             var listCardDom = $('<div>', {
-                class: 'kanban-list-cards'
+                'class': 'kanban-list-cards'
             });
             var composerContainerDom = $('<div>', {
-                class: 'kanban-composer-container'
+                'class': 'kanban-composer-container'
             });
             var addNewCardButtonDom = $('<button>', {
-                class: 'kanban-new-card-button',
+                'class': 'kanban-new-card-button',
                 html: `<span class="fa fa-plus"></span> ${translate('add a new card').ucfirst()}`,
                 data: {
                     column: oneHeader.id
@@ -715,7 +711,7 @@
             var parentsDomList = ['.contributor-container', '.kanban-footer-card', '.kanban-list-card-action'];
             if (parentsDomList.some(function (oneParentDom) { return $(event.target).parents(oneParentDom).length > 0 })) return false;
             var self = $(this);
-            var data = getDataFromCard(Context, self);
+            var data = self.data('datum');
             if (typeof settings.onCardClick === 'function') settings.onCardClick(data);
         }).on('click', '.kanban-list-card-detail:not(.dragging) .kanban-list-card-edit', function (event) {
             event.stopPropagation();
@@ -723,7 +719,7 @@
             var columnId = self.data('column');
             var columnKanbanDoms = $('.kanban-list-card-edit[data-column="' + columnId + '"]');
             var cardIndex = columnKanbanDoms.index(self);
-            var data = getDataFromCard(Context, self.parents('.kanban-list-card-detail'));
+            var data = self.parents('.kanban-list-card-detail').data('datum');
             if (typeof settings.onEditCardOpen === 'function') settings.onEditCardOpen(data);
 
             var parentCardDom = self.parents('.kanban-list-card-detail');
@@ -777,7 +773,7 @@
                 var listCardContainerDom = Context.find(`.kanban-list-wrapper[data-column=${targetColumn}] .kanban-list-cards`);
                 if (listCardContainerDom.children().length === targetLine) listCardContainerDom.append(cardParentDom);
                 else listCardContainerDom.children().eq(targetLine).before(cardParentDom);
-                _dragAndDropManager.onCardDrop(cardParentDom, cardIndex, Context);
+                _dragAndDropManager.onCardDrop(cardParentDom, Context);
                 overlayDom.removeClass('active').empty();
             });
         }).on('click', '.kanban-list-card-detail:not(.dragging) .contributors-preview', function () {
@@ -785,7 +781,7 @@
         }).on('click', '.kanban-list-card-detail:not(.dragging) .card-action', function () {
             var self = $(this);
             var cardDom = self.parents('.kanban-list-card-detail');
-            var data = getDataFromCard(Context, cardDom);
+            var data = cardDom.data('datum');
             if (typeof self.data('action') === 'string' && typeof settings[self.data('action')] === 'function') settings[self.data('action')](data, cardDom);
         }).on('click', '.kanban-new-card-button', function () {
             var columnId = $(this).data('column');
@@ -856,7 +852,7 @@
 
         var kanbanOverlayDom
         if ($('.kanban-overlay').length === 0) {
-            kanbanOverlayDom = $('<div>', { class: 'kanban-overlay' });
+            kanbanOverlayDom = $('<div>', { 'class': 'kanban-overlay' });
             $(document.body).prepend(kanbanOverlayDom);
         } else kanbanOverlayDom = $('.kanban-overlay');
 
@@ -883,7 +879,7 @@
         var settings = Context.data('settings');
         Context.empty().html('');
         Context.append($('<div>', {
-            class: 'kanban-container'
+            'class': 'kanban-container'
         }));
         if (settings.language === 'en') {
             loadKanban(Context);
