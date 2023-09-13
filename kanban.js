@@ -322,7 +322,7 @@
                 if (typeof oneAction.icon === 'undefined' && typeof oneAction.badge === 'undefined') return true;
                 if (settings.actionConditionEnabled && typeof oneAction.hideCondition !== 'undefined') {
                     var interrupt = false;
-                    for (var key in oneAction.hideCondition) { if (typeof oneAction[key] !== 'undefined' && oneAction[key] === oneAction.hideCondition[key]) interrupt = true; }
+                    for (var key in oneAction.hideCondition) { if (typeof oneAction[key] !== 'undefined' && oneAction[key].toString() === oneAction.hideCondition[key].toString()) interrupt = true; }
                     if (interrupt) return true;
                 }
                 html = ['string', 'number'].includes(typeof oneAction.badge) ? oneAction.badge : '';
