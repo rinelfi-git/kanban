@@ -325,7 +325,7 @@
                     for (var key in oneAction.hideCondition) { if (typeof oneAction[key] !== 'undefined' && oneAction[key] === oneAction.hideCondition[key]) interrupt = true; }
                     if (interrupt) return true;
                 }
-                html = typeof oneAction.badge === 'string' ? oneAction.badge : '';
+                html = ['string', 'number'].includes(typeof oneAction.badge) ? oneAction.badge : '';
                 html = html + (typeof oneAction.icon === 'string' ? `${(html.length > 0 ? ' ' : '')} <span class="${oneAction.icon}"></span>` : '');
                 var actionDom = $('<button>', {
                     'class': 'card-action',
@@ -915,12 +915,25 @@
             switch (options) {
                 case 'setData':
                     var matrixData = $.extend({}, Self.data('matrix'));
-                    var index = matrixData[argument.column].findIndex(function(data) {
-                        return data.id === argument.id;
-                    })
-                    var oldData = matrixData[argument.column][index];
-                    var data = $.extend({}, oldData, argument.data);
-                    matrixData[argument.column][index] = data;
+                    var data = $.extend({}, argument.data);
+                    var index;
+                    var column = argument.column ? argument.column : '';
+                    if(argument.column) {
+                        index = matrixData[argument.column].findIndex(function(datum) {
+                            return datum.id === argument.id;
+                        });
+                    } else {
+                        for(column in matrixData) {
+                            index = matrixData[column].findIndex(function(datum) {
+                                console.log('match', datum.id, argument.id, datum.id === argument.id);
+                                return datum.id === argument.id;
+                            });
+                            if(index >= 0) {
+                                break;
+                            }
+                        }
+                    }
+                    matrixData[column][index] = data;
                     Self.data('matrix', matrixData);
                     var filter = Self.data('filter');
                     matrixData = filterMatrixBy(matrixData, filter);
@@ -947,7 +960,16 @@
                     break;
                 case 'getData':
                     var matrixData = $.extend({}, Self.data('matrix'));
-                    return matrixData[argument.column][argument.index];
+                    if(argument.column && argument.index) {
+                        return matrixData[argument.column][argument.index];
+                    } else {
+                        for(var column in matrixData) {
+                            var foundData = matrixData[column].find(function(datum) {
+                                return datum.id === argument.id;
+                            });
+                            if(typeof foundData !== 'undefined') return foundData;
+                        }
+                    }
                     break;
                 case 'filter':
                     var filter = argument;
