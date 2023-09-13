@@ -812,6 +812,7 @@
             }
             self.parents('.dropdown-list').removeClass('open');
         }).on('click', '.column-header-text', function () {
+            Context.trigger('click');
             var self = $(this);
             var headerEditorDom = self.next('.column-header-editor');
             self.hide();
