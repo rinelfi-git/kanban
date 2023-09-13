@@ -62,8 +62,14 @@
 
     function moveCard(Context, cardDom, from, to, at) {
         var listCardContainerDom = Context.find('.kanban-list-wrapper[data-column=' + to + '] .kanban-list-cards');
-        if (listCardContainerDom.children().eq(at).length) {
-            listCardContainerDom.children().eq(at).after(cardDom);
+        var childrenAtPosition = listCardContainerDom.children().eq(at);
+        var cardPosition = listCardContainerDom.children().index(cardDom);
+        if(childrenAtPosition.length) {
+            if(cardPosition >= 0 && cardPosition < at) {
+                childrenAtPosition.after(cardDom);
+            } else {
+                childrenAtPosition.before(cardDom);
+            }
         } else {
             listCardContainerDom.append(cardDom);
         }
