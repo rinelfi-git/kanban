@@ -12,7 +12,10 @@
     var _currentLanguage;
     var _dragAndDropManager = {
         prependOnly: false,
-        onCardDrop(self, Context) {
+        onCardDrop(self, Context, notify) {
+            if(typeof notify !== 'boolean') {
+                notify = true;
+            }
             var settings = Context.data('settings');
             var oldColumn = self.data('column');
             var newColumn = self.parents('.kanban-list-wrapper').data('column');
@@ -50,10 +53,10 @@
             var filter = Context.data('filter');
             Context.data('matrix', newDataMatrix);
             newDataMatrix = filterMatrixBy(newDataMatrix, filter);
-            
+
             Context.find(`.card-counter[data-column=${oldColumn}]`).text(newDataMatrix[oldColumn].length);
             Context.find(`.card-counter[data-column=${newColumn}]`).text(newDataMatrix[newColumn].length);
-            if (typeof settings.onCardDrop === 'function') settings.onCardDrop({ data, origin: oldColumn, target: newColumn }, { origin: oldDataList, target: newDataList });
+            if (typeof settings.onCardDrop === 'function' && notify) settings.onCardDrop({ data, origin: oldColumn, target: newColumn }, { origin: oldDataList, target: newDataList });
         }
     }
 
@@ -73,7 +76,7 @@
                     var oldValue = cardDetailDom.data('datum');
                     var newValue = $.extend({}, oldValue);
                     newValue.title = textArea.val();
-                    var realIndex = matrix[column].findIndex(function(data) {
+                    var realIndex = matrix[column].findIndex(function (data) {
                         return data.id === oldValue.id;
                     });
                     matrix[column][realIndex] = newValue;
@@ -103,10 +106,10 @@
 
                     var filter = Context.data('filter');
                     var filteredMatrix = filterMatrixBy(matrix, filter);
-                    var index = filteredMatrix[column].findIndex(function(data) {
+                    var index = filteredMatrix[column].findIndex(function (data) {
                         return data.id === newData.id;
                     });
-                    if(index >= 0) {
+                    if (index >= 0) {
                         cardsContainerDom.append(buildCard({
                             data: newData,
                             settings: settings
@@ -284,15 +287,15 @@
     }
 
     function buildCard(options) {
-        var data= options.data;
+        var data = options.data;
         var settings = options.settings;
-        var listCardDetailContainer = $('<div>').attr('data-column', data.header).addClass('kanban-list-card-detail').data('datum', data);
+        var listCardDetailContainer = $('<div>').attr('data-column', data.header).attr('data-id', data.id).addClass('kanban-list-card-detail').data('datum', data);
 
         var listCardDetailText = $('<span>', {
             'class': 'kanban-list-card-title'
         });
 
-        if(data.html) listCardDetailText.html(data.title);
+        if (data.html) listCardDetailText.html(data.title);
         else listCardDetailText.text(data.title);
 
         var listCardDetailSwitch = $('<button>', {
@@ -608,7 +611,7 @@
         $.each(matrix, function (oneHeaderKey) {
             if (Context.find(`kanban-list-wrapper[data-column=${oneHeaderKey}]`).length > 0) return false;
             var oneHeader = settings.headers.find(oneHeaderFind => oneHeaderFind.id === oneHeaderKey);
-            if(typeof oneHeader === 'undefined') return true;
+            if (typeof oneHeader === 'undefined') return true;
             var kanbanListWrapperDom = $('<div>', {
                 'class': 'kanban-list-wrapper',
                 id: 'kanban-wrapper-' + oneHeader.id,
@@ -918,17 +921,17 @@
                     var data = $.extend({}, argument.data);
                     var index;
                     var column = argument.column ? argument.column : '';
-                    if(argument.column) {
-                        index = matrixData[argument.column].findIndex(function(datum) {
+                    if (argument.column) {
+                        index = matrixData[argument.column].findIndex(function (datum) {
                             return datum.id === argument.id;
                         });
                     } else {
-                        for(column in matrixData) {
-                            index = matrixData[column].findIndex(function(datum) {
+                        for (column in matrixData) {
+                            index = matrixData[column].findIndex(function (datum) {
                                 console.log('match', datum.id, argument.id, datum.id === argument.id);
                                 return datum.id === argument.id;
                             });
-                            if(index >= 0) {
+                            if (index >= 0) {
                                 break;
                             }
                         }
@@ -960,14 +963,14 @@
                     break;
                 case 'getData':
                     var matrixData = $.extend({}, Self.data('matrix'));
-                    if(argument.column && argument.index) {
+                    if (argument.column && argument.index) {
                         return matrixData[argument.column][argument.index];
                     } else {
-                        for(var column in matrixData) {
-                            var foundData = matrixData[column].find(function(datum) {
+                        for (var column in matrixData) {
+                            var foundData = matrixData[column].find(function (datum) {
                                 return datum.id === argument.id;
                             });
-                            if(typeof foundData !== 'undefined') return foundData;
+                            if (typeof foundData !== 'undefined') return foundData;
                         }
                     }
                     break;
@@ -979,6 +982,13 @@
                     buildCards(Self, matrix);
                     bindDragAndDropEvents(Self, _dragAndDropManager);
                     if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
+                    break;
+                case 'moveCard':
+                    var cardDom = $('.kanban-list-card-detail[data-id=' + argument.id + ']');
+                    var listCardContainerDom = Self.find('.kanban-list-wrapper[data-column=' + argument.target + '] .kanban-list-cards');
+                    if (listCardContainerDom.children().length === argument.position) listCardContainerDom.append(cardDom);
+                    else listCardContainerDom.children().eq(argument.position).before(cardDom);
+                    _dragAndDropManager.onCardDrop(cardDom, Self, typeof argument.notify === 'boolean' ? argument.notify : false);
                     break;
             }
         }
