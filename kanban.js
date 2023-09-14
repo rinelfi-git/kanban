@@ -973,9 +973,11 @@
                         Self.data('matrix', matrixData);
                         var filter = Self.data('filter');
                         matrixData = filterMatrixBy(matrixData, filter);
-                        var cardDom = buildCard({ data: data, settings: settings });
-
-                        buildCards(Self, matrixData);
+                        var oldCardDom = Self.find('.kanban-list-card-detail[data-id="' + argument.id + '"]');
+                        if(oldCardDom.length) {
+                            oldCardDom.after(buildCard({ data: data, settings: settings }));
+                            oldCardDom.remove();
+                        }
                         bindDragAndDropEvents(Self, _dragAndDropManager);
                         if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
                     }
@@ -1007,8 +1009,8 @@
                     var filter = Self.data('filter');
                     matrix = filterMatrixBy(matrix, filter);
                     if(deletedId !== null){
-                        var cardDom = Self.find('.kanban-list-card-detail[data-id=' + deletedId + ']');
-                        cardDom.remove();
+                        var createCardDom = Self.find('.kanban-list-card-detail[data-id=' + deletedId + ']');
+                        createCardDom.remove();
                         bindDragAndDropEvents(Self, _dragAndDropManager);
                         if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
                     }
@@ -1036,10 +1038,10 @@
                     if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
                     break;
                 case 'moveCard':
-                    var cardDom = $('.kanban-list-card-detail[data-id=' + argument.id + ']');
+                    var createCardDom = $('.kanban-list-card-detail[data-id=' + argument.id + ']');
                     var column;
-                    if (cardDom.length) {
-                        column = cardDom.data('column');
+                    if (createCardDom.length) {
+                        column = createCardDom.data('column');
                     } else {
                         var matrix = Self.data('matrix');
                         var index;
@@ -1052,11 +1054,11 @@
                             }
                         }
                         var data = matrix[column][index];
-                        cardDom = buildCard({ data: data, settings: settings });
-                        cardDom.hide();
+                        createCardDom = buildCard({ data: data, settings: settings });
+                        createCardDom.hide();
                     }
-                    moveCard(Self, cardDom, column, argument.target, argument.position);
-                    _dragAndDropManager.onCardDrop(cardDom, Self, typeof argument.notify === 'boolean' ? argument.notify : false);
+                    moveCard(Self, createCardDom, column, argument.target, argument.position);
+                    _dragAndDropManager.onCardDrop(createCardDom, Self, typeof argument.notify === 'boolean' ? argument.notify : false);
                     break;
             }
         }
