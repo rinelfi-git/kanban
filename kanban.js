@@ -59,7 +59,18 @@
             if (typeof settings.onCardDrop === 'function' && notify) settings.onCardDrop({ data, origin: oldColumn, target: newColumn }, { origin: oldDataList, target: newDataList });
         }
     }
-
+    function dataMatrixIndex(datum, matrix) {
+        var index = -1;
+        if (typeof matrix[datum.header] !== 'undefined') {
+            index = matrix[datum.header].findIndex(function (datumFindIndex) {
+                return datum.id === datumFindIndex.id;
+            });
+            if (index >= 0) {
+                return index;
+            }
+        }
+        return index;
+    }
     function moveCard(Context, cardDom, from, to, at) {
         var listCardContainerDom = Context.find('.kanban-list-wrapper[data-column=' + to + '] .kanban-list-cards');
         var childrenAtPosition = listCardContainerDom.children().eq(at);
@@ -105,7 +116,7 @@
                     if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
                     break;
                 case 'insert':
-                    var cardsContainerDom = $(`#kanban-wrapper-${column} .kanban-list-cards`);
+                    var cardsContainerDom = Context.find(`#kanban-wrapper-${column} .kanban-list-cards`);
                     var newData = {
                         id: (new Date).getTime(),
                         header: column,
@@ -567,9 +578,10 @@
 
     function addData(Context, data) {
         var settings = Context.data('settings');
-        var compiledDataList = data.map(function (datumMap) {
+        var compiledDataList = data.filter(function (datumFilter) {
+            return typeof datumFilter.id !== 'undefined' && typeof datumFilter.header !== 'undefined';
+        }).map(function (datumMap) {
             var defaultDadum = {
-                id: Math.floor(Math.random() * Date.now()),
                 html: false,
                 editable: settings.editable,
                 actions: [],
@@ -597,27 +609,33 @@
 
     function deleteData(Context, coordinates) {
         var matrix = $.extend({}, Context.data('matrix'));
+        var id = null;
         if (typeof coordinates === 'object' && typeof coordinates.index !== 'undefined' && typeof matrix[coordinates.column] !== 'undefined' && typeof matrix[coordinates.column][coordinates.index] !== 'undefined') {
+            id = matrix[coordinates.column][coordinates.index].id;
             matrix[coordinates.column].splice(coordinates.index, 1);
-        } else if (typeof coordinates === 'object' && typeof coordinates.id !== 'undefined') {
+        } else if (typeof coordinates === 'object' && typeof coordinates.id !== 'undefined' && typeof coordinates.column !== 'undefined') {
             var index = matrix[coordinates.column].findIndex(function (data) {
                 return data.id === coordinates.id;
             });
             if (typeof matrix[coordinates.column] !== 'undefined' && typeof matrix[coordinates.column][index] !== 'undefined') {
+                id = matrix[coordinates.column][index].id;
                 matrix[coordinates.column].splice(index, 1);
             }
         } else {
+            coordinates = typeof coordinates === 'object' && coordinates.id ? coordinates.id : coordinates;
             for (var column in matrix) {
                 var index = matrix[column].findIndex(function (data) {
                     return data.id === coordinates;
                 });
                 if (index >= 0) {
+                    id = matrix[column][index].id;
                     matrix[column].splice(index, 1);
                     break;
                 }
             }
         }
         Context.data('matrix', matrix);
+        return id;
     }
 
     function buildColumns(Context) {
@@ -955,27 +973,45 @@
                         Self.data('matrix', matrixData);
                         var filter = Self.data('filter');
                         matrixData = filterMatrixBy(matrixData, filter);
+                        var cardDom = buildCard({ data: data, settings: settings });
+
                         buildCards(Self, matrixData);
                         bindDragAndDropEvents(Self, _dragAndDropManager);
                         if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
                     }
                     break;
                 case 'addData':
-                    addData(Self, Array.isArray(argument) ? argument : [argument]);
+                    var dataToAdd = Array.isArray(argument) ? argument : [argument];
+                    addData(Self, dataToAdd);
                     var matrix = Self.data('matrix');
                     var filter = Self.data('filter');
                     matrix = filterMatrixBy(matrix, filter);
-                    buildCards(Self, matrix);
+                    dataToAdd.forEach(function (datumLoop) {
+                        if (typeof datumLoop.id === 'undefined' || typeof datumLoop.header === 'undefined') {
+                            return true;
+                        }
+                        var index = dataMatrixIndex(datumLoop, matrix);
+                        if (index >= 0) {
+                            Self.find('#kanban-wrapper-' + datumLoop.header + ' .kanban-list-cards').append(buildCard({
+                                data: matrix[datumLoop.header][index],
+                                settings: settings
+                            }));
+                        }
+                    });
                     bindDragAndDropEvents(Self, _dragAndDropManager);
                     if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
+                    break;
                 case 'deleteData':
-                    deleteData(Self, argument);
+                    var deletedId = deleteData(Self, argument);
                     var matrix = Self.data('matrix');
                     var filter = Self.data('filter');
                     matrix = filterMatrixBy(matrix, filter);
-                    buildCards(Self, matrix);
-                    bindDragAndDropEvents(Self, _dragAndDropManager);
-                    if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
+                    if(deletedId !== null){
+                        var cardDom = Self.find('.kanban-list-card-detail[data-id=' + deletedId + ']');
+                        cardDom.remove();
+                        bindDragAndDropEvents(Self, _dragAndDropManager);
+                        if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
+                    }
                     break;
                 case 'getData':
                     var matrixData = $.extend({}, Self.data('matrix'));
