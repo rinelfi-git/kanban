@@ -64,8 +64,8 @@
         var listCardContainerDom = Context.find('.kanban-list-wrapper[data-column=' + to + '] .kanban-list-cards');
         var childrenAtPosition = listCardContainerDom.children().eq(at);
         var cardPosition = listCardContainerDom.children().index(cardDom);
-        if(childrenAtPosition.length) {
-            if(cardPosition >= 0 && cardPosition < at) {
+        if (childrenAtPosition.length) {
+            if (cardPosition >= 0 && cardPosition < at) {
                 childrenAtPosition.after(cardDom);
             } else {
                 childrenAtPosition.before(cardDom);
@@ -597,13 +597,15 @@
 
     function deleteData(Context, coordinates) {
         var matrix = $.extend({}, Context.data('matrix'));
-        if (typeof coordinates === 'object' && typeof coordinates.index !== 'undefined') {
+        if (typeof coordinates === 'object' && typeof coordinates.index !== 'undefined' && typeof matrix[coordinates.column] !== 'undefined' && typeof matrix[coordinates.column][coordinates.index] !== 'undefined') {
             matrix[coordinates.column].splice(coordinates.index, 1);
         } else if (typeof coordinates === 'object' && typeof coordinates.id !== 'undefined') {
             var index = matrix[coordinates.column].findIndex(function (data) {
                 return data.id === coordinates.id;
             });
-            matrix[coordinates.column].splice(index, 1);
+            if (typeof matrix[coordinates.column] !== 'undefined' && typeof matrix[coordinates.column][index] !== 'undefined') {
+                matrix[coordinates.column].splice(index, 1);
+            }
         } else {
             for (var column in matrix) {
                 var index = matrix[column].findIndex(function (data) {
@@ -934,7 +936,7 @@
                     var data = $.extend({}, argument.data);
                     var index;
                     var column = argument.column ? argument.column : '';
-                    if (argument.column) {
+                    if (argument.column && typeof matrixData[argument.column] !== 'undefined') {
                         index = matrixData[argument.column].findIndex(function (datum) {
                             return datum.id === argument.id;
                         });
@@ -948,13 +950,15 @@
                             }
                         }
                     }
-                    matrixData[column][index] = data;
-                    Self.data('matrix', matrixData);
-                    var filter = Self.data('filter');
-                    matrixData = filterMatrixBy(matrixData, filter);
-                    buildCards(Self, matrixData);
-                    bindDragAndDropEvents(Self, _dragAndDropManager);
-                    if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
+                    if (typeof matrixData[column][index] !== 'undefined') {
+                        matrixData[column][index] = data;
+                        Self.data('matrix', matrixData);
+                        var filter = Self.data('filter');
+                        matrixData = filterMatrixBy(matrixData, filter);
+                        buildCards(Self, matrixData);
+                        bindDragAndDropEvents(Self, _dragAndDropManager);
+                        if (typeof settings.onRenderDone === 'function') settings.onRenderDone();
+                    }
                     break;
                 case 'addData':
                     addData(Self, Array.isArray(argument) ? argument : [argument]);
@@ -1003,16 +1007,16 @@
                     } else {
                         var matrix = Self.data('matrix');
                         var index;
-                        for(column in matrix) {
-                            index = matrix[column].findIndex(function(datum) {
+                        for (column in matrix) {
+                            index = matrix[column].findIndex(function (datum) {
                                 return datum.id === argument.id;
                             });
-                            if(index >= 0){
+                            if (index >= 0) {
                                 break;
                             }
                         }
                         var data = matrix[column][index];
-                        cardDom = buildCard({data: data, settings: settings});
+                        cardDom = buildCard({ data: data, settings: settings });
                         cardDom.hide();
                     }
                     moveCard(Self, cardDom, column, argument.target, argument.position);
