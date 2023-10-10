@@ -333,6 +333,11 @@
             html: '<span class="fa fa-pencil"></span>',
             'data-column': data.header
         });
+        var cardDuplicate = $('<button>', {
+            'class': 'card-duplicate',
+            html: '<span class="fa fa-clone"></span>',
+            'data-column': data.header
+        });
         var cardActionDom = $('<div>', {
             'class': 'kanban-list-card-action'
         });
@@ -343,7 +348,10 @@
             'class': 'contributors-preview',
             html: `${data.contributors.length} <span class="fa fa-users"></span>`
         });
-        if (settings.canEditCard && data.editable) cardActionDom.append(listCardDetailEdit);
+        if (settings.canEditCard && data.editable) {cardActionDom.append(listCardDetailEdit);}
+        if(settings.canDuplicateCard) {
+            cardActionDom.append(cardDuplicate);
+        }
         if (data.actions.length) {
             $.each(data.actions, function (_, oneAction) {
                 var html = '';
@@ -373,7 +381,9 @@
         if (settings.showContributors) {
             cardFooterDom.append(contributorDom);
         }
-        cardActionDom.append(listCardDetailSwitch);
+        if(settings.canMoveCard) {
+            cardActionDom.append(listCardDetailSwitch);
+        }
         listCardDetailContainer
             .append(listCardDetailText)
             .append(cardActionDom);
@@ -433,7 +443,19 @@
         }).element
     }
 
+    function duplicateCard(cardDom) {
+        var context = cardDom.parents('.kanban-initialized');
+        var data = getDataFromCard(context, cardDom);
+        var copy = $.extend({}, data);
+        copy.id = Date.now().toString();
+        copy.position = cardDom.parents('.kanban-list-cards').find('.kanban-list-card-detail').index(cardDom) + 1;
+        addData(context, [copy]);
+        cardDom.after(buildCard({data: copy, settings: context.data('settings')}));
+        bindDragAndDropEvents(context, _dragAndDropManager);
+    }
+
     function bindDragAndDropEvents(Context, events) {
+        var settings = Context.data('settings');
         var diffX = 0, diffY = 0, outerWidth = 0, outerHeight = 0, width = 0, height = 0;
         var dragstart = false, dragover = false;
 
@@ -446,7 +468,7 @@
             outerHeight = $(this).outerHeight();
             width = $(this).width();
             height = $(this).height();
-            dragstart = true;
+            dragstart = settings.canMoveCard;
             $(this).off('mouseup').one('mouseup', mouseup);
             $(document).off('mousemove').on('mousemove', '.kanban-list-card-detail', function (event) {
                 mousemove(event.originalEvent, this);
@@ -579,7 +601,7 @@
         });
     }
 
-    function addData(Context, data) {
+    function addData(Context, data, options) {
         var settings = Context.data('settings');
         var compiledDataList = data.filter(function (datumFilter) {
             return typeof datumFilter.id !== 'undefined' && typeof datumFilter.header !== 'undefined';
@@ -811,12 +833,12 @@
             event.stopPropagation();
             var self = $(this);
             var columnId = self.data('column');
-            var columnKanbanDoms = $('.kanban-list-card-edit[data-column="' + columnId + '"]');
-            var cardIndex = columnKanbanDoms.index(self);
-            var data = self.parents('.kanban-list-card-detail').data('datum');
+            var columnKanbanDoms = Context.find('.kanban-list-wrapper[data-column="' + columnId + '"] .kanban-list-card-detail')
+            var parentCardDom = self.parents('.kanban-list-card-detail');
+            var cardIndex = columnKanbanDoms.index(parentCardDom);
+            var data = getDataFromCard(Context, parentCardDom);
             if (typeof settings.onEditCardOpen === 'function') settings.onEditCardOpen(data);
 
-            var parentCardDom = self.parents('.kanban-list-card-detail');
             var overlayDom = $('.kanban-overlay');
             var scrollLeft = Context.scrollLeft();
             Context.css('overflow-x', 'hidden');
@@ -875,6 +897,9 @@
             var cardDom = self.parents('.kanban-list-card-detail');
             var data = cardDom.data('datum');
             if (typeof self.data('action') === 'string' && typeof settings[self.data('action')] === 'function') settings[self.data('action')](data, cardDom);
+        }).on('click', '.kanban-list-card-detail:not(.dragging) .card-duplicate', function() {
+            var self = $(this);
+            duplicateCard(self.parents('.kanban-list-card-detail'));
         }).on('click', '.kanban-new-card-button', function () {
             var columnId = $(this).data('column');
             var wrapperDom = $('#kanban-wrapper-' + columnId);
@@ -1017,6 +1042,8 @@
                 prependOnly: false,
                 canEditCard: true,
                 canAddCard: true,
+                canDuplicateCard: false,
+                canMoveCard: true,
                 canAddColumn: false,
                 showContributors: false,
                 actionConditionEnabled: false,
