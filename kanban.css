@@ -577,4 +577,5 @@ textarea.list-card-composer-textarea:focus {
     vertical-align: top;
     white-space: nowrap;
     width: 310px;
+    font-weight: bold;
 }

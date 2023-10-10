@@ -70,7 +70,7 @@
         }
         return index;
     }
-    function moveCard(Context, cardDom, from, to, at) {
+    function moveCard(Context, cardDom, to, at) {
         var listCardContainerDom = Context.find('.kanban-list-wrapper[data-column=' + to + '] .kanban-list-cards');
         var childrenAtPosition = listCardContainerDom.children().eq(at);
         var cardPosition = listCardContainerDom.children().index(cardDom);
@@ -117,7 +117,7 @@
                 case 'insert':
                     var cardsContainerDom = Context.find(`#kanban-wrapper-${column} .kanban-list-cards`);
                     var newData = {
-                        id: (new Date).getTime(),
+                        id: Date.now().toString(),
                         header: column,
                         title: textArea.val(),
                         position: cardsContainerDom.children().length - 1,
@@ -348,8 +348,8 @@
             'class': 'contributors-preview',
             html: `${data.contributors.length} <span class="fa fa-users"></span>`
         });
-        if (settings.canEditCard && data.editable) {cardActionDom.append(listCardDetailEdit);}
-        if(settings.canDuplicateCard) {
+        if (settings.canEditCard && data.editable) { cardActionDom.append(listCardDetailEdit); }
+        if (settings.canDuplicateCard) {
             cardActionDom.append(cardDuplicate);
         }
         if (data.actions.length) {
@@ -381,7 +381,7 @@
         if (settings.showContributors) {
             cardFooterDom.append(contributorDom);
         }
-        if(settings.canMoveCard) {
+        if (settings.canMoveCard) {
             cardActionDom.append(listCardDetailSwitch);
         }
         listCardDetailContainer
@@ -443,33 +443,56 @@
         }).element
     }
 
-    function duplicateCard(cardDom) {
+    function duplicateCard(cardDom, options) {
+        var defaultOptions = {
+            bindDragAndDropEvent: false
+        }
+        if (typeof options !== 'object') {
+            options = defaultOptions;
+        } else {
+            options = $.extend(true, {}, defaultOptions, options);
+        }
         var context = cardDom.parents('.kanban-initialized');
         var data = getDataFromCard(context, cardDom);
         var copy = $.extend({}, data);
         copy.id = Date.now().toString();
         copy.position = cardDom.parents('.kanban-list-cards').find('.kanban-list-card-detail').index(cardDom) + 1;
         addData(context, [copy]);
-        cardDom.after(buildCard({data: copy, settings: context.data('settings')}));
-        bindDragAndDropEvents(context, _dragAndDropManager);
+        var createdCard = buildCard({ data: copy, settings: context.data('settings') });
+        cardDom.after(createdCard);
+        if (options.bindDragAndDropEvent) {
+            bindDragAndDropEvents(context, _dragAndDropManager);
+        }
+        return createdCard;
     }
 
     function bindDragAndDropEvents(Context, events) {
         var settings = Context.data('settings');
         var diffX = 0, diffY = 0, outerWidth = 0, outerHeight = 0, width = 0, height = 0;
         var dragstart = false, dragover = false;
+        var cardCopy = null;
+        var isCopyWhenDragFromColumn = false;
+        var originalCard = null;
 
         function mousedown(event) {
             if (event.button === 2) return false;
+            var self = $(this);
+            originalCard = self;
             var bcr = this.getBoundingClientRect();
             diffX = event.clientX - bcr.x;
             diffY = event.clientY - bcr.y;
-            outerWidth = $(this).outerWidth();
-            outerHeight = $(this).outerHeight();
-            width = $(this).width();
-            height = $(this).height();
+            outerWidth = self.outerWidth();
+            outerHeight = self.outerHeight();
+            width = self.width();
+            height = self.height();
             dragstart = settings.canMoveCard;
-            $(this).off('mouseup').one('mouseup', mouseup);
+            isCopyWhenDragFromColumn = settings.copyWhenDragFrom.includes(self.data('datum').header);
+            originalCard.off('mouseup').one('mouseup', mouseup);
+            if (isCopyWhenDragFromColumn) {
+                cardCopy = duplicateCard(self, { bindDragAndDropEvents: false });
+                cardCopy.hide();
+                cardCopy.off('mouseup').one('mouseup', mouseup);
+            }
             $(document).off('mousemove').on('mousemove', '.kanban-list-card-detail', function (event) {
                 mousemove(event.originalEvent, this);
             });
@@ -477,6 +500,10 @@
         function mousemove(event, target) {
             if (!dragstart) return;
             var self = $(target);
+            if (cardCopy !== null) {
+                cardCopy.show()
+                self = cardCopy;
+            }
             self.removeClass('active-card');
             if (!self.hasClass('dragging')) {
                 var bcr = self.get(0).getBoundingClientRect();
@@ -494,6 +521,7 @@
                     width: outerWidth,
                     height: outerHeight
                 });
+
                 self.detach();
                 Context.append(self);
                 dragover = true;
@@ -513,30 +541,64 @@
             self.off('mouseup');
             self.off('mouseleave');
             $(document).off('mousemove');
-            if (!dragstart) return;
+            if (!dragstart) {
+                if(cardCopy !== null) {
+                    cardCopy.remove();
+                }
+                initValues();
+                return true;
+            }
             dragstart = false;
-            if (!dragover) return;
+            if (!dragover) {
+                if(cardCopy !== null) {
+                    cardCopy.remove();
+                }
+                initValues();
+                return true;
+            }
             dragover = false;
-            var bcr = _dragSubstituteDom.get(0).getBoundingClientRect();
+            var dragMarker = _dragSubstituteDom.is(':visible') ? _dragSubstituteDom : originalCard;
+            var bcr = dragMarker.get(0).getBoundingClientRect();
+
             self.animate({
                 top: bcr.y,
                 left: bcr.x
             }, {
                 easing: 'easeOutQuad',
-                duration: 200,
+                duration: 250,
                 complete() {
                     self.removeClass('dragging').css({ position: '', top: '', left: '', width: '', height: '', transform: '' });
-                    _dragSubstituteDom.after(self);
+                    dragMarker.after(self);
                     _dragSubstituteDom.detach();
-                    if (typeof events.onCardDrop === 'function') events.onCardDrop(self, Context);
-                    diffX = 0, diffY = 0, outerWidth = 0, outerHeight = 0, width = 0, height = 0;
+                    if (dragMarker === _dragSubstituteDom) {
+                        if (typeof events.onCardDrop === 'function') events.onCardDrop(self, Context);
+                    } else {
+                        deleteData(Context, { id: self.data('datum').id });
+                        self.remove();
+                    }
+                    bindDragAndDropEvents(Context, _dragAndDropManager);
+                    initValues();
                 }
             });
         }
 
         function checkDragOver(position) {
+            var settings = Context.data('settings');
             Context.find('.kanban-list-content').each(function () {
-                if (isPointerInsideOf(this, position)) {
+                if (!isPointerInsideOf(this, position)) {
+                    return true;
+                }
+                var self = $(this);
+                var column = self.parents('.kanban-list-wrapper').attr('data-column');
+                var cardDomHavingSameInstanceIdentity = self.find('.kanban-list-card-detail:not(.substitute)').filter(function () {
+                    if (cardCopy === null) {
+                        return false;
+                    }
+                    var cardCopyData = cardCopy.data('datum');
+                    return cardCopyData.instanceIdentity === $(this).data('datum').instanceIdentity;
+                });
+                
+                if (!(originalCard.data('datum').header === column && settings.copyWhenDragFrom.includes(column)) && cardDomHavingSameInstanceIdentity.length === 0) {
                     var containerVanillaDom = this.querySelector('.kanban-list-cards');
                     var afterElementVanillaDom = getDragAfterElement(containerVanillaDom, position.y);
                     if (afterElementVanillaDom == null) $(containerVanillaDom).append(_dragSubstituteDom);
@@ -544,6 +606,13 @@
                     else $(afterElementVanillaDom).before(_dragSubstituteDom);
                 }
             });
+        }
+
+        function initValues() {
+            cardCopy = null;
+            isCopyWhenDragFromColumn = false;
+            originalCard = null;
+            diffX = 0, diffY = 0, outerWidth = 0, outerHeight = 0, width = 0, height = 0
         }
 
         Context.find('.kanban-list-card-detail').each(function () {
@@ -608,6 +677,7 @@
         }).map(function (datumMap) {
             var defaultDadum = {
                 html: false,
+                instanceIdentity: datumMap.id,
                 editable: settings.canEditCard,
                 actions: [],
                 contributors: []
@@ -886,7 +956,7 @@
                 var cardParentDom = self.parents('.kanban-list-card-detail');
                 var targetColumn = moveContextDom.find('[name=list-map]').val();
                 var targetLine = parseInt(moveContextDom.find('[name=position-map]').val());
-                moveCard(Context, cardParentDom, cardParentDom.data('column'), targetColumn, targetLine);
+                moveCard(Context, cardParentDom, targetColumn, targetLine);
                 _dragAndDropManager.onCardDrop(cardParentDom, Context);
                 overlayDom.removeClass('active').empty();
             });
@@ -897,7 +967,7 @@
             var cardDom = self.parents('.kanban-list-card-detail');
             var data = cardDom.data('datum');
             if (typeof self.data('action') === 'string' && typeof settings[self.data('action')] === 'function') settings[self.data('action')](data, cardDom);
-        }).on('click', '.kanban-list-card-detail:not(.dragging) .card-duplicate', function() {
+        }).on('click', '.kanban-list-card-detail:not(.dragging) .card-duplicate', function () {
             var self = $(this);
             duplicateCard(self.parents('.kanban-list-card-detail'));
         }).on('click', '.kanban-new-card-button', function () {
