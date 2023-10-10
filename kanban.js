@@ -591,11 +591,7 @@
                 var self = $(this);
                 var column = self.parents('.kanban-list-wrapper').attr('data-column');
                 var cardDomHavingSameInstanceIdentity = self.find('.kanban-list-card-detail:not(.substitute)').filter(function () {
-                    if (cardCopy === null) {
-                        return false;
-                    }
-                    var cardCopyData = cardCopy.data('datum');
-                    return cardCopyData.instanceIdentity === $(this).data('datum').instanceIdentity;
+                    return originalCard.data('datum').instanceIdentity === $(this).data('datum').instanceIdentity;
                 });
                 
                 if (!(originalCard.data('datum').header === column && settings.copyWhenDragFrom.includes(column)) && !settings.readonlyHeaders.includes(column) && cardDomHavingSameInstanceIdentity.length === 0) {
