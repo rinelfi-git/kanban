@@ -376,10 +376,12 @@
         cardActionDom.append(listCardDetailSwitch);
         listCardDetailContainer
             .append(listCardDetailText)
-            .append(cardActionDom)
-            .append(cardFooterDom);
+            .append(cardActionDom);
         if (data.contributors.length) {
             listCardDetailContainer.append(buildContributorsDropdown(data.contributors))
+        }
+        if (cardFooterDom.children().length) {
+            listCardDetailContainer.append(cardFooterDom);
         }
         return listCardDetailContainer;
     }
@@ -1018,6 +1020,8 @@
                 canAddColumn: false,
                 showContributors: false,
                 actionConditionEnabled: false,
+                copyWhenDragFrom: [],
+                readonlyHeaders: [],
                 language: 'en'
             };
             var settings = $.extend(true, {}, defaultOptions, options);
