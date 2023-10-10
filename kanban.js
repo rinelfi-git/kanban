@@ -598,7 +598,7 @@
                     return cardCopyData.instanceIdentity === $(this).data('datum').instanceIdentity;
                 });
                 
-                if (!(originalCard.data('datum').header === column && settings.copyWhenDragFrom.includes(column)) && cardDomHavingSameInstanceIdentity.length === 0) {
+                if (!(originalCard.data('datum').header === column && settings.copyWhenDragFrom.includes(column)) && !settings.readonlyHeaders.includes(column) && cardDomHavingSameInstanceIdentity.length === 0) {
                     var containerVanillaDom = this.querySelector('.kanban-list-cards');
                     var afterElementVanillaDom = getDragAfterElement(containerVanillaDom, position.y);
                     if (afterElementVanillaDom == null) $(containerVanillaDom).append(_dragSubstituteDom);
