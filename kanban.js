@@ -457,6 +457,7 @@
         var copy = $.extend({}, data);
         copy.id = Date.now().toString();
         copy.position = cardDom.parents('.kanban-list-cards').find('.kanban-list-card-detail').index(cardDom) + 1;
+        copy.title += 'copy';
         addData(context, [copy]);
         var createdCard = buildCard({ data: copy, settings: context.data('settings') });
         cardDom.after(createdCard);
@@ -543,6 +544,7 @@
             $(document).off('mousemove');
             if (!dragstart) {
                 if(cardCopy !== null) {
+                    deleteData(Context, cardCopy.data('datum').id);
                     cardCopy.remove();
                 }
                 initValues();
@@ -551,6 +553,7 @@
             dragstart = false;
             if (!dragover) {
                 if(cardCopy !== null) {
+                    deleteData(Context, cardCopy.data('datum').id);
                     cardCopy.remove();
                 }
                 initValues();
@@ -620,33 +623,44 @@
         });
     }
 
-    function buildCardMoveContext(headers, selectedData, matrixData) {
-        var matrixLengthInHeader = matrixData[selectedData.header].length;
+    function buildCardMoveContext(Context, headers, selectedData, matrixData) {
+        var settings = Context.data('settings');
+        console.log('matrix data', matrixData);
+        function shouldCopy(column) {
+            return settings.copyWhenDragFrom.includes(column);
+        }
+        function isColumnReadOnly(column) {
+            return settings.readonlyHeaders.includes(column)
+        }
+        var filteredHeaders = headers.filter(function(filterHeader) {
+            return !isColumnReadOnly(filterHeader.id);
+        });
+        var matrixLengthInHeader = isColumnReadOnly(selectedData.header) ? (filteredHeaders.length ? matrixData[filteredHeaders[0].id].length + 1 : 0): matrixData[selectedData.header].length;
         var indexOfData = matrixData[selectedData.header].indexOf(selectedData);
         var moveCardContext = $('<div>', {
             'class': 'kanban-move-card'
         });
         moveCardContext.empty().html(`
-            <h2 class="kanban-card-move-header">${translate('move the card').ucfirst()}</h2>
+            <h2 class="kanban-card-move-header">${shouldCopy(selectedData.header) ? translate('copy the card').ucfirst() : translate('move the card').ucfirst()}</h2>
             <label class="kanban-card-move-label">${translate('list').ucfirst()}</label>
             <div class="select">
-                <select class="kanban-target-choice" name="list-map">
-                    ${headers.map(function (oneHeaderMap) { return `<option value="${oneHeaderMap.id}" ${oneHeaderMap.id === selectedData.header ? 'selected="selected"' : ''}>${oneHeaderMap.label} ${oneHeaderMap.id === selectedData.header ? `(${translate('current')})` : ''}</option>`; }).join('')}
+                <select class="kanban-target-choice" name="list-map" ${filteredHeaders.length === 0 ? 'disabled="disabled"' : ''}>
+                    ${filteredHeaders.map(function (oneHeaderMap) { return `<option value="${oneHeaderMap.id}" ${oneHeaderMap.id === selectedData.header ? `selected="selected"` : ''}>${oneHeaderMap.label} ${oneHeaderMap.id === selectedData.header ? `(${translate('current')})` : ''}</option>`; }).join('')}
                 </select>
             </div>
             <label class="kanban-card-move-label">${translate('position').ucfirst()}</label>
             <div class="select">
-                <select class="kanban-target-choice" name="position-map">
-                    ${Array.from({ length: matrixLengthInHeader }, (_, index) => index).map(oneArrayMap => `<option value="${oneArrayMap}" ${oneArrayMap === indexOfData ? 'selected="selected"' : ''}>${oneArrayMap + 1} ${oneArrayMap === indexOfData ? `(${translate('current')})` : ''}</option>`).join('')}
+                <select class="kanban-target-choice" name="position-map" ${filteredHeaders.length === 0 ? 'disabled="disabled"' : ''}>
+                    ${Array.from({ length: matrixLengthInHeader }, (_, index) => index).map(builtArrayIndex => `<option value="${builtArrayIndex}" ${builtArrayIndex === indexOfData ? 'selected="selected"' : ''}>${builtArrayIndex + 1} ${builtArrayIndex === indexOfData && !isColumnReadOnly(selectedData.header) ? `(${translate('current')})` : ''}</option>`).join('')}
                 </select>
             </div>
-            <input class="nch-button nch-button--primary wide js-submit" type="submit" value="${translate('move').ucfirst()}">
+            <input class="nch-button nch-button--primary wide js-submit" type="submit" value="${shouldCopy(selectedData.header) ? translate('copy').ucfirst() : translate('move').ucfirst()}">
         `);
 
         moveCardContext.on('change', '[name=list-map]', function () {
             var newLength = matrixData[this.value].length;
             moveCardContext.find('[name=position-map]').empty().html(`
-                ${Array.from({ length: this.value === selectedData.header ? newLength : newLength + 1 }, (_, index) => index).map(oneArrayMap => `<option value="${oneArrayMap}" ${this.value === selectedData.header && oneArrayMap === indexOfData ? 'selected="selected"' : ''}>${oneArrayMap + 1} ${this.value === selectedData.header && oneArrayMap === indexOfData ? `(${translate('current')})` : ''}</option>`).join('')}
+                ${Array.from({ length: this.value === selectedData.header ? newLength : newLength + 1 }, (_, index) => index).map(builtArrayIndex => `<option value="${builtArrayIndex}" ${this.value === selectedData.header && builtArrayIndex === indexOfData && !isColumnReadOnly(this.value) ? 'selected="selected"' : ''}>${builtArrayIndex + 1} ${this.value === selectedData.header && builtArrayIndex === indexOfData ? `(${translate('current')})` : ''}</option>`).join('')}
             `);
         });
         return moveCardContext;
@@ -826,10 +840,12 @@
         };
         var newColumn = buildColumn(context, newHeader);
         var settings = context.data('settings');
-        settings.headers.splice(wrapperDom.index(context.find('.kanban-list-wrapper')) + 1, 0, newHeader);
+        var wrapperIndex = context.find('.kanban-list-wrapper').index(wrapperDom);
+        settings.headers.splice(wrapperIndex + 1, 0, newHeader);
         $.each(settings.headers, function (_, header) {
             newMatrix[header.id] = typeof oldMatrix[header.id] === 'undefined' ? [] : oldMatrix[header.id];
         });
+        console.log('built column', newMatrix);
         context.data('settings', settings);
         context.data('matrix', newMatrix);
         wrapperDom.after(newColumn);
@@ -934,6 +950,7 @@
         }).on('click', '.kanban-list-card-detail:not(.dragging) .kanban-list-card-switch', function (event) {
             event.stopPropagation();
             var self = $(this);
+            var settings = Context.data('settings');
             var columnId = self.data('column');
             var columnKanbanDoms = $('.kanban-list-card-switch[data-column="' + columnId + '"]');
             var cardIndex = columnKanbanDoms.index(self);
@@ -946,14 +963,18 @@
             var scrollLeft = Context.scrollLeft();
             Context.css('overflow-x', 'hidden');
             Context.scrollLeft(scrollLeft);
-            var moveContextDom = buildCardMoveContext(settings.headers, data, matrix)
+            var moveContextDom = buildCardMoveContext(Context, settings.headers, data, matrix)
             overlayDom.append(moveContextDom).addClass('active');
             moveContextDom.on('click', '.js-submit', function () {
-                var cardParentDom = self.parents('.kanban-list-card-detail');
+                var cardDom = self.parents('.kanban-list-card-detail');
                 var targetColumn = moveContextDom.find('[name=list-map]').val();
                 var targetLine = parseInt(moveContextDom.find('[name=position-map]').val());
-                moveCard(Context, cardParentDom, targetColumn, targetLine);
-                _dragAndDropManager.onCardDrop(cardParentDom, Context);
+                if(settings.copyWhenDragFrom.includes(cardDom.data('datum').header)) {
+                    var cardDomClone = duplicateCard(cardDom);
+                    cardDom = cardDomClone
+                }
+                moveCard(Context, cardDom, targetColumn, targetLine);
+                _dragAndDropManager.onCardDrop(cardDom, Context);
                 overlayDom.removeClass('active').empty();
             });
         }).on('click', '.kanban-list-card-detail:not(.dragging) .contributors-preview', function () {
