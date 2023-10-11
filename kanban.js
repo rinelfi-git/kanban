@@ -457,7 +457,6 @@
         var copy = $.extend({}, data);
         copy.id = Date.now().toString();
         copy.position = cardDom.parents('.kanban-list-cards').find('.kanban-list-card-detail').index(cardDom) + 1;
-        copy.title += 'copy';
         addData(context, [copy]);
         var createdCard = buildCard({ data: copy, settings: context.data('settings') });
         cardDom.after(createdCard);
