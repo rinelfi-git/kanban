@@ -122,6 +122,7 @@
                         title: textArea.val(),
                         position: cardsContainerDom.children().length - 1,
                         editable: settings.canEditCard,
+                        canMoveCard: settings.canMoveCard,
                         html: false,
                         contributors: [],
                         actions: []
@@ -381,7 +382,7 @@
         if (settings.showContributors) {
             cardFooterDom.append(contributorDom);
         }
-        if (settings.canMoveCard) {
+        if (settings.canMoveCard && data.canMoveCard) {
             cardActionDom.append(listCardDetailSwitch);
         }
         listCardDetailContainer
@@ -485,7 +486,7 @@
             outerHeight = self.outerHeight();
             width = self.width();
             height = self.height();
-            dragstart = settings.canMoveCard;
+            dragstart = settings.canMoveCard && self.data('datum').canMoveCard;
             isCopyWhenDragFromColumn = settings.copyWhenDragFrom.includes(self.data('datum').header);
             originalCard.off('mouseup').one('mouseup', mouseup);
             if (isCopyWhenDragFromColumn) {
@@ -688,6 +689,7 @@
                 html: false,
                 instanceIdentity: datumMap.id,
                 editable: settings.canEditCard,
+                canMoveCard: settings.canMoveCard,
                 actions: [],
                 contributors: []
             };
