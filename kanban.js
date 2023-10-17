@@ -543,7 +543,7 @@
             self.off('mouseleave');
             $(document).off('mousemove');
             if (!dragstart) {
-                if(cardCopy !== null) {
+                if (cardCopy !== null) {
                     deleteData(Context, cardCopy.data('datum').id);
                     cardCopy.remove();
                 }
@@ -552,7 +552,7 @@
             }
             dragstart = false;
             if (!dragover) {
-                if(cardCopy !== null) {
+                if (cardCopy !== null) {
                     deleteData(Context, cardCopy.data('datum').id);
                     cardCopy.remove();
                 }
@@ -596,7 +596,7 @@
                 var cardDomHavingSameInstanceIdentity = self.find('.kanban-list-card-detail:not(.substitute)').filter(function () {
                     return originalCard.data('datum').instanceIdentity === $(this).data('datum').instanceIdentity;
                 });
-                
+
                 if (!(originalCard.data('datum').header === column && settings.copyWhenDragFrom.includes(column)) && !settings.readonlyHeaders.includes(column) && cardDomHavingSameInstanceIdentity.length === 0) {
                     var containerVanillaDom = this.querySelector('.kanban-list-cards');
                     var afterElementVanillaDom = getDragAfterElement(containerVanillaDom, position.y);
@@ -632,10 +632,10 @@
         function isColumnReadOnly(column) {
             return settings.readonlyHeaders.includes(column)
         }
-        var filteredHeaders = headers.filter(function(filterHeader) {
+        var filteredHeaders = headers.filter(function (filterHeader) {
             return !isColumnReadOnly(filterHeader.id);
         });
-        var matrixLengthInHeader = isColumnReadOnly(selectedData.header) ? (filteredHeaders.length ? matrixData[filteredHeaders[0].id].length + 1 : 0): matrixData[selectedData.header].length;
+        var matrixLengthInHeader = isColumnReadOnly(selectedData.header) ? (filteredHeaders.length ? matrixData[filteredHeaders[0].id].length + 1 : 0) : matrixData[selectedData.header].length;
         var indexOfData = matrixData[selectedData.header].indexOf(selectedData);
         var moveCardContext = $('<div>', {
             'class': 'kanban-move-card'
@@ -754,6 +754,7 @@
             if (Context.find(`kanban-list-wrapper[data-column=${oneHeaderKey}]`).length > 0) return false;
             var oneHeader = settings.headers.find(oneHeaderFind => oneHeaderFind.id === oneHeaderKey);
             if (typeof oneHeader === 'undefined') return true;
+            oneHeader.menus = typeof oneHeader.menus !== 'object' || !Array.isArray(oneHeader.menus) ? [] : oneHeader.menus;
             kanbanContainerDom.append(buildColumn(Context, oneHeader));
         });
         if (settings.canAddColumn) {
@@ -792,20 +793,27 @@
             'class': 'kanban-list-header',
             html: `<span class="column-header-text">${header.label}</span><input class="column-header-editor" value="${header.label}" type="text">${settings.showCardNumber ? `<span class="card-counter-container"> (<span data-column="${header.id}" class="card-counter">0</span>)</span>` : ''}`
         });
-        var dropdownHtml = `
+        var customMenuHtml = header.menus.map(function (menuMap) {
+            return `<li class="dropdown-item" data-target="custom-menu">${menuMap.label}</li>`;
+        }).join('');
+        var dropdownCreateDom = $(`
         <ul class="dropdown-list">
-            ${settings.canEditHeader ? `<li class="dropdown-item" data-target="column-rename">${translate('rename this column').ucfirst()}</li>` : ''}
-            ${settings.canAddCard ? `<li class="dropdown-item" data-target="add-card">${translate('add a new card').ucfirst()}</li>` : ''}
-            ${settings.canAddColumn ? `<li class="dropdown-item" data-target="add-column">${translate('add a new column').ucfirst()}</li>` : ''}
+            ${settings.canEditHeader && (settings.defaultColumnMenus.length === 0 || settings.defaultColumnMenus.includes('edit_header')) ? `<li class="dropdown-item" data-target="column-rename">${translate('rename this column').ucfirst()}</li>` : ''}
+            ${settings.canAddCard && (settings.defaultColumnMenus.length === 0 || settings.defaultColumnMenus.includes('add_card')) ? `<li class="dropdown-item" data-target="add-card">${translate('add a new card').ucfirst()}</li>` : ''}
+            ${settings.canAddColumn && (settings.defaultColumnMenus.length === 0 || settings.defaultColumnMenus.includes('add_column')) ? `<li class="dropdown-item" data-target="add-column">${translate('add a new column').ucfirst()}</li>` : ''}
         </ul>
-        `
+        `);
+        $.each(header.menus, function (_, oneMenu) {
+            var menuDom = $('<li>').addClass('dropdown-item').attr('data-target', 'custom-menu').data('action', oneMenu.action).data('header', header).text(oneMenu.label);
+            dropdownCreateDom.append(menuDom);
+        });
         var actionDropdownDom = $('<div>', {
             'class': 'kanban-action-dropdown',
-            html: `
-                <button class="dropdown-trigger kanban-themed-button"><span class="fa fa-ellipsis-h"></span></button>
-                ${settings.canEditHeader || settings.canAddCard || settings.canAddColumn ? dropdownHtml : ''}
-            `
+            html: `<button class="dropdown-trigger kanban-themed-button"><span class="fa fa-ellipsis-h"></span></button>`
         });
+        if (dropdownCreateDom.children().length) {
+            actionDropdownDom.append(dropdownCreateDom)
+        }
         var listCardDom = $('<div>', {
             'class': 'kanban-list-cards'
         });
@@ -837,7 +845,8 @@
         var newMatrix = {};
         var newHeader = {
             id: Date.now().toString(),
-            label: translate('New column')
+            label: translate('New column'),
+            menus: []
         };
         var newColumn = buildColumn(context, newHeader);
         var settings = context.data('settings');
@@ -893,12 +902,13 @@
         }).on('click', '.kanban-list-header', function (event) {
             var target = $(event.target);
             var self = $(this);
+            var settings = Context.data('settings');
             var excludeElementsList = ['column-header-text', 'column-header-editor', 'kanban-action-dropdown'];
             function notElement(classnames) {
                 return !target.hasClass(classnames) && target.parents(`.${classnames}`).length === 0;
             }
 
-            if (excludeElementsList.every(notElement) && $('.card-composer').length === 0) {
+            if (excludeElementsList.every(notElement) && $('.card-composer').length === 0 && settings.canAddCard) {
                 var wrapperDom = self.parents('.kanban-list-wrapper');
                 var column = wrapperDom.data('column');
                 wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(Context, column)).scrollTop(0);
@@ -970,7 +980,7 @@
                 var cardDom = self.parents('.kanban-list-card-detail');
                 var targetColumn = moveContextDom.find('[name=list-map]').val();
                 var targetLine = parseInt(moveContextDom.find('[name=position-map]').val());
-                if(settings.copyWhenDragFrom.includes(cardDom.data('datum').header)) {
+                if (settings.copyWhenDragFrom.includes(cardDom.data('datum').header)) {
                     var cardDomClone = duplicateCard(cardDom);
                     cardDom = cardDomClone
                 }
@@ -1021,6 +1031,9 @@
                     var wrapperDom = self.parents('.kanban-list-wrapper');
                     var headerEditorDom = wrapperDom.find('.column-header-editor');
                     createColumnAfter(wrapperDom);
+                case 'custom-menu':
+                    var header = self.data('header');
+                    if (typeof self.data('action') === 'string' && typeof settings[self.data('action')] === 'function') settings[self.data('action')](header);
                     break;
             }
             self.parents('.dropdown-list').removeClass('open');
@@ -1126,6 +1139,7 @@
             var defaultOptions = {
                 headers: [],
                 data: [],
+                defaultColumnMenus: [],
                 canEditHeader: false,
                 prependOnly: false,
                 canEditCard: true,
