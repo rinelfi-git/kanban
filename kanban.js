@@ -625,7 +625,6 @@
 
     function buildCardMoveContext(Context, headers, selectedData, matrixData) {
         var settings = Context.data('settings');
-        console.log('matrix data', matrixData);
         function shouldCopy(column) {
             return settings.copyWhenDragFrom.includes(column);
         }
@@ -855,7 +854,6 @@
         $.each(settings.headers, function (_, header) {
             newMatrix[header.id] = typeof oldMatrix[header.id] === 'undefined' ? [] : oldMatrix[header.id];
         });
-        console.log('built column', newMatrix);
         context.data('settings', settings);
         context.data('matrix', newMatrix);
         wrapperDom.after(newColumn);
