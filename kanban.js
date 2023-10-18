@@ -502,22 +502,25 @@
             if (!dragstart) {
                 return true;
             }
-            Context.off('mouseup').on('mouseup', function (event) {
+            Context.off('mouseup').on('mouseup',function(event) {
                 var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
                 var targetDom = $(event.target);
                 if (draggingElement !== null && (targetDom.hasClass('kanban-list-card-detail') && !targetDom.get(0).isSameNode(draggingElement) || targetDom.parents('.kanban-list-card-detail').length && !targetDom.parents('.kanban-list-card-detail').get(0).isSameNode(draggingElement))) {
                     mouseup(draggingElement);
                 }
             });
-            Context.off('mousemove').on('mousemove', function (event) {
+            $(document).off('mousemove').on('mousemove', function (event) {
                 var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
                 var isFirstMove = event.target.classList.contains('kanban-list-card-detail') && draggingElement === null;
+                var coordinates = {
+                    x: event.clientX,
+                    y: event.clientY
+                };
                 if (isFirstMove || draggingElement !== null) {
-                    var coordinates = {
-                        x: event.clientX,
-                        y: event.clientY
-                    };
                     mousemove(coordinates, isFirstMove ? event.target : draggingElement);
+                }
+                if(!isPointerInsideOf(Context.get(0), coordinates)) {
+                    mouseup(draggingElement);
                 }
             });
         }
@@ -1108,6 +1111,7 @@
                 Context.trigger('click');
             }
         }).on('dragstart', '.kanban-list-wrapper', function (event) {
+            event.preventDefault();
         }).on('dragover', function (event) {
         });
         Context.addClass('kanban-initialized');
