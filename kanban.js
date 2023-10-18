@@ -504,7 +504,8 @@
             }
             Context.off('mouseup').on('mouseup', function (event) {
                 var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
-                if (draggingElement !== null && !event.target.isSameNode(draggingElement)) {
+                var targetDom = $(event.target);
+                if (draggingElement !== null && (targetDom.hasClass('kanban-list-card-detail') && !targetDom.get(0).isSameNode(draggingElement) || targetDom.parents('.kanban-list-card-detail').length && !targetDom.parents('.kanban-list-card-detail').get(0).isSameNode(draggingElement))) {
                     mouseup(draggingElement);
                 }
             });
@@ -594,6 +595,7 @@
                 complete() {
                     self.removeClass('dragging').css({ position: '', top: '', left: '', width: '', height: '', transform: '' });
                     dragMarker.after(self);
+                    console.log(self.data());
                     _dragSubstituteDom.detach();
                     if (dragMarker === _dragSubstituteDom) {
                         if (typeof events.onCardDrop === 'function') events.onCardDrop(self, Context);
