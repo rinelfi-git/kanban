@@ -562,7 +562,7 @@
         }
         function mouseup(element) {
             var self = $(element);
-            Context.find('.kanban-list-wrapper').attr('draggable', 'true');
+            Context.find('.kanban-list-wrapper').attr('draggable', settings.canMoveColumn.toString());
             self.off('mouseup');
             Context.off('mousemove');
             if (!dragstart) {
@@ -595,7 +595,6 @@
                 complete() {
                     self.removeClass('dragging').css({ position: '', top: '', left: '', width: '', height: '', transform: '' });
                     dragMarker.after(self);
-                    console.log(self.data());
                     _dragSubstituteDom.detach();
                     if (dragMarker === _dragSubstituteDom) {
                         if (typeof events.onCardDrop === 'function') events.onCardDrop(self, Context);

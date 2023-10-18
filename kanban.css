@@ -62,7 +62,8 @@
     width: 310px;
     min-width: 310px;
     height: 100%;
-    scroll-snap-align: center
+    scroll-snap-align: center;
+    background-color: transparent;
 }
 
 .kanban-list-content {
