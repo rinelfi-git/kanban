@@ -505,7 +505,7 @@
             Context.off('mouseup').on('mouseup', function (event) {
                 var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
                 if (draggingElement !== null && !event.target.isSameNode(draggingElement)) {
-                    // mouseup(draggingElement);
+                    mouseup(draggingElement);
                 }
             });
             Context.off('mousemove').on('mousemove', function (event) {
