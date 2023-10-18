@@ -478,7 +478,7 @@
         function mousedown(event) {
             if (event.button === 2) return false;
             var self = $(this);
-            self.parents('.kanban-list-wrapper').attr('draggable', 'false');
+            Context.find('.kanban-list-wrapper').attr('draggable', 'false');
             originalCard = self;
             var bcr = this.getBoundingClientRect();
             diffX = event.clientX - bcr.x;
@@ -502,10 +502,10 @@
             if (!dragstart) {
                 return true;
             }
-            Context.off('mouseup').on('mouseup', function () {
-                var draggingElement = $('.kanban-list-card-detail.dragging');
-                if (draggingElement.length) {
-                    mouseup(draggingElement);
+            Context.off('mouseup').on('mouseup', function (event) {
+                var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
+                if (draggingElement !== null && !event.target.isSameNode(draggingElement)) {
+                    // mouseup(draggingElement);
                 }
             });
             Context.off('mousemove').on('mousemove', function (event) {
@@ -527,7 +527,7 @@
                 cardCopy.show()
                 self = cardCopy;
             }
-            if (self.hasClass('aactive-card')) {
+            if (self.hasClass('active-card')) {
                 self.removeClass('active-card');
             }
             if (!self.hasClass('dragging')) {
@@ -546,7 +546,6 @@
                     width: outerWidth,
                     height: outerHeight
                 });
-
                 self.detach();
                 Context.append(self);
                 dragover = true;
@@ -562,7 +561,7 @@
         }
         function mouseup(element) {
             var self = $(element);
-            self.parents('.kanban-list-wrapper').attr('draggable', 'true');
+            Context.find('.kanban-list-wrapper').attr('draggable', 'true');
             self.off('mouseup');
             Context.off('mousemove');
             if (!dragstart) {
