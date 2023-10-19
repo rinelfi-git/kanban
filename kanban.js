@@ -78,6 +78,7 @@
             if (typeof settings.onColumnDrop === 'function' && notify) {
                 settings.onColumnDrop({
                     column: columnName,
+                    columns: matrixIndexes,
                     origin: oldPosition,
                     target: position
                 });
@@ -1234,12 +1235,12 @@
             }
             // column drag and drop
         });
-        $(document).on('mousemove', function(event) {
+        $(document).on('mousemove', function (event) {
             var coordinates = {
                 x: event.clientX,
                 y: event.clientY
             };
-            if(dragstartColumn && !isPointerInsideOf(Context.get(0), coordinates)) {
+            if (dragstartColumn && !isPointerInsideOf(Context.get(0), coordinates)) {
                 Context.trigger('mouseup');
             }
         })
