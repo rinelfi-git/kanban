@@ -12,7 +12,8 @@
     --background-gradient: linear-gradient(30deg, #f39c12 30%, #f1c40f);
     --gray: #34495e;
     --darkgray: #2c3e50;
-    --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif
+    --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    --column-radius: 12px;
 }
 
 .kanban-initialized {
@@ -67,7 +68,9 @@
 }
 
 .kanban-list-wrapper-substitute {
-    border: 1px solid black;
+    border: 2px dashed black;
+    scroll-snap-align: center;
+    border-radius: var(--column-radius);
 }
 
 .kanban-list-content {
@@ -75,7 +78,7 @@
     --list-title-color: var(--ds-text, #172b4d);
     --list-text-color: var(--ds-text-subtle, #44546f);
     background-color: var(--list-background-color);
-    border-radius: 12px;
+    border-radius: var(--column-radius);
     box-shadow: var(--ds-shadow-raised, 0 1px 1px #091e4240, 0 0 1px #091e424f);
     box-sizing: border-box;
     display: flex;
@@ -157,8 +160,11 @@
     display: inline-block;
 }
 
-.kanban-list-card-detail.dragging, .kanban-list-wrapper.dragging {
+.kanban-list-card-detail.dragging {
     transform: rotate(5deg);
+}
+
+.kanban-list-card-detail.dragging, .kanban-list-wrapper.dragging {
     z-index: 30;
     cursor: grab;
 }
@@ -196,7 +202,7 @@
     background-color: transparent;
 }
 
-.kanban-list-card-switch,.card-duplicate {
+.kanban-list-card-switch, .card-duplicate {
     display: inline-block;
 }
 
@@ -406,8 +412,8 @@ textarea.list-card-composer-textarea:focus {
 .column-header-editor {
     display: none;
     height: 28px;
-    background-color: var(--ds-background-input,#fff);
-    box-shadow: inset 0 0 0 2px var(--ds-border-focused,#388bff);
+    background-color: var(--ds-background-input, #fff);
+    box-shadow: inset 0 0 0 2px var(--ds-border-focused, #388bff);
     margin: -4px 0;
     max-height: 256px;
     min-height: 20px;
@@ -422,7 +428,7 @@ textarea.list-card-composer-textarea:focus {
     -webkit-appearance: none;
     appearance: none;
     transition-duration: 85ms;
-    transition-property: background-color,border-color,box-shadow;
+    transition-property: background-color, border-color, box-shadow;
     transition-timing-function: ease;
     outline: none;
     grid-area: input;
@@ -538,13 +544,13 @@ textarea.list-card-composer-textarea:focus {
     text-align: left;
     list-style: none;
     background-clip: padding-box;
-    border: 1px solid rgba(0,0,0,.15);
+    border: 1px solid rgba(0, 0, 0, .15);
     border-radius: 4px;
-    -webkit-box-shadow: 0 6px 12px rgba(0,0,0,.175);
-    box-shadow: 0 6px 12px rgba(0,0,0,.175);
+    -webkit-box-shadow: 0 6px 12px rgba(0, 0, 0, .175);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, .175);
 }
 
-.dropdown-list.open{
+.dropdown-list.open {
     display: block;
 }
 
@@ -575,7 +581,7 @@ textarea.list-card-composer-textarea:focus {
     height: auto;
     min-height: 32px;
     padding: 15px;
-    transition: background 85ms ease-in,opacity 40ms ease-in,border-color 85ms ease-in;
+    transition: background 85ms ease-in, opacity 40ms ease-in, border-color 85ms ease-in;
     box-sizing: border-box;
     display: inline-block;
     margin: 0 4px;

@@ -56,6 +56,32 @@
             Context.find(`.card-counter[data-column=${oldColumn}]`).text(newDataMatrix[oldColumn].length);
             Context.find(`.card-counter[data-column=${newColumn}]`).text(newDataMatrix[newColumn].length);
             if (typeof settings.onCardDrop === 'function' && notify) settings.onCardDrop({ data, origin: oldColumn, target: newColumn }, { origin: oldDataList, target: newDataList });
+        },
+        onColumnDrop(element, Context, notify) {
+            if (typeof notify !== 'boolean') {
+                notify = true;
+            }
+            var settings = Context.data('settings');
+            var matrix = Context.data('matrix');
+            var position = Context.find('.kanban-list-wrapper:not(.js-add-column)').index(element);
+            var matrixIndexes = Object.keys(matrix);
+            var columnName = element.data('column');
+            var oldPosition = matrixIndexes.indexOf(columnName);
+            matrixIndexes.splice(oldPosition, 1);
+            matrixIndexes.splice(position, 0, columnName);
+            var newMatrix = {};
+            matrixIndexes.forEach(function (matrixIndex) {
+                newMatrix[matrixIndex] = matrix[matrixIndex];
+            });
+            matrix = $.extend({}, newMatrix);
+            Context.data('matrix', matrix);
+            if (typeof settings.onColumnDrop === 'function' && notify) {
+                settings.onColumnDrop({
+                    column: columnName,
+                    origin: oldPosition,
+                    target: position
+                });
+            }
         }
     }
     function dataMatrixIndex(datum, matrix) {
@@ -494,6 +520,30 @@
         var isCopyWhenDragFromColumn = false;
         var originalCard = null;
 
+
+        function externalDropCard(event) {
+            var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
+            var targetDom = $(event.target);
+            if (draggingElement !== null && (targetDom.hasClass('kanban-list-card-detail') && !targetDom.get(0).isSameNode(draggingElement) || targetDom.parents('.kanban-list-card-detail').length && !targetDom.parents('.kanban-list-card-detail').get(0).isSameNode(draggingElement))) {
+                mouseup(draggingElement);
+            }
+        }
+
+        function movingCardDrop(event) {
+            var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
+            var isFirstMove = event.target.classList.contains('kanban-list-card-detail') && draggingElement === null;
+            var coordinates = {
+                x: event.clientX,
+                y: event.clientY
+            };
+            if (isFirstMove || draggingElement !== null) {
+                mousemove(coordinates, isFirstMove ? event.target : draggingElement);
+            }
+            if (!isPointerInsideOf(Context.get(0), coordinates)) {
+                mouseup(draggingElement);
+            }
+        }
+
         function mousedown(event) {
             if (event.button === 2) return false;
             var self = $(this);
@@ -521,27 +571,8 @@
             if (!dragstart) {
                 return true;
             }
-            Context.off('mouseup').on('mouseup', function (event) {
-                var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
-                var targetDom = $(event.target);
-                if (draggingElement !== null && (targetDom.hasClass('kanban-list-card-detail') && !targetDom.get(0).isSameNode(draggingElement) || targetDom.parents('.kanban-list-card-detail').length && !targetDom.parents('.kanban-list-card-detail').get(0).isSameNode(draggingElement))) {
-                    mouseup(draggingElement);
-                }
-            });
-            $(document).off('mousemove').on('mousemove', function (event) {
-                var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
-                var isFirstMove = event.target.classList.contains('kanban-list-card-detail') && draggingElement === null;
-                var coordinates = {
-                    x: event.clientX,
-                    y: event.clientY
-                };
-                if (isFirstMove || draggingElement !== null) {
-                    mousemove(coordinates, isFirstMove ? event.target : draggingElement);
-                }
-                if (!isPointerInsideOf(Context.get(0), coordinates)) {
-                    mouseup(draggingElement);
-                }
-            });
+            Context.on('mouseup', externalDropCard);
+            $(document).on('mousemove', movingCardDrop);
         }
         function mousemove(coordinates, target) {
             if (!dragstart || $(target).length && !$(target).hasClass('kanban-list-card-detail')) return;
@@ -586,7 +617,9 @@
             var self = $(element);
             Context.find('.kanban-list-wrapper').attr('draggable', settings.canMoveColumn.toString());
             self.off('mouseup');
-            Context.off('mousemove');
+            Context.off('mouseup', externalDropCard);
+            $(document).off('mousemove', movingCardDrop);
+
             if (!dragstart) {
                 if (cardCopy !== null) {
                     deleteData(Context, cardCopy.data('datum').id);
@@ -660,7 +693,6 @@
 
         Context.find('.kanban-list-card-detail').each(function () {
             $(this).off('mousedown').off('mouseup', mouseup);
-            Context.off('mousemove');
         });
         Context.find('.kanban-list-card-detail').each(function () {
             $(this).on('mousedown', mousedown);
@@ -1137,43 +1169,80 @@
             var self = $(this);
             var bcr = this.getBoundingClientRect();
             outerWidth = self.outerWidth();
-            outerHeight = self.outerHeight();
+            outerHeight = self.find('.kanban-list-content').outerHeight();
             width = self.width();
             height = self.height();
             dragstartColumn = true;
 
             columnSubstitute.css({
-                width: outerWidth,
-                height: outerHeight
+                minWidth: outerWidth - 4,
+                width: outerWidth - 4,
+                height: outerHeight - 4
             });
             self.before(columnSubstitute);
             self.addClass('dragging')
-            .css({
-                position: 'fixed',
-                top: bcr.y,
-                left: bcr.x
-            })
-            .width(width)
-            .height(height)
-            .detach();
+                .css({
+                    position: 'fixed',
+                    top: bcr.y,
+                    left: bcr.x
+                })
+                .width(width)
+                .height(height)
+                .detach();
             Context.append(self);
             event.preventDefault();
         }).on('mousemove', function (event) {
             var draggingElement = document.querySelector('.kanban-list-wrapper.dragging');
+            var coordinates = {
+                x: event.clientX,
+                y: event.clientY
+            };
             if (dragstartColumn && draggingElement !== null) {
-                var coordinates = {
-                    x: event.clientX,
-                    y: event.clientY
-                };
                 moveColumn(coordinates, draggingElement);
             }
         }).on('mouseup', function (event) {
             // column drag and drop
             if (dragstartColumn) {
                 dragstartColumn = false;
+                var draggingElement = $('.kanban-list-wrapper.dragging');
+                var bcr = columnSubstitute.get(0).getBoundingClientRect()
+                draggingElement.animate({
+                    top: bcr.y,
+                    left: bcr.x
+                }, {
+                    easing: 'easeOutQuad',
+                    duration: 250,
+                    complete() {
+                        draggingElement
+                            .removeClass('dragging')
+                            .css({
+                                position: '',
+                                top: '',
+                                left: '',
+                                width: '',
+                                height: ''
+                            });
+                        columnSubstitute
+                            .after(draggingElement)
+                            .detach();
+                        if (typeof _dragAndDropManager.onColumnDrop === 'function') {
+                            _dragAndDropManager.onColumnDrop(draggingElement, Context);
+                        }
+                        bindDragAndDropEvents(Context, _dragAndDropManager);
+                    }
+                });
             }
             // column drag and drop
         });
+        $(document).on('mousemove', function(event) {
+            var coordinates = {
+                x: event.clientX,
+                y: event.clientY
+            };
+            if(dragstartColumn && !isPointerInsideOf(Context.get(0), coordinates)) {
+                Context.trigger('mouseup');
+            }
+        })
 
         // Drag and drop column section
         var diffX = 0, diffY = 0, outerWidth = 0, outerHeight = 0, width = 0, height = 0, dragstartColumn = false, dragover = false, columnSubstitute = $('<div>').addClass('kanban-list-wrapper-substitute');
