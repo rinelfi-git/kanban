@@ -995,7 +995,7 @@
             if (parentsDomList.some(function (oneParentDom) { return $(event.target).parents(oneParentDom).length > 0 })) return false;
             var self = $(this);
             var data = self.data('datum');
-            if (typeof settings.onCardClick === 'function') settings.onCardClick(data);
+            if (typeof settings.onCardClick === 'function') settings.onCardClick(data, this);
         }).on('click', '.kanban-list-card-detail:not(.dragging) .kanban-list-card-edit', function (event) {
             event.stopPropagation();
             var self = $(this);
