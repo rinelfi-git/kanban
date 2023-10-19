@@ -66,6 +66,10 @@
     background-color: transparent;
 }
 
+.kanban-list-wrapper-substitute {
+    border: 1px solid black;
+}
+
 .kanban-list-content {
     --list-background-color: var(--tr-background-list, #ebecf0);
     --list-title-color: var(--ds-text, #172b4d);
@@ -153,7 +157,7 @@
     display: inline-block;
 }
 
-.kanban-list-card-detail.dragging {
+.kanban-list-card-detail.dragging, .kanban-list-wrapper.dragging {
     transform: rotate(5deg);
     z-index: 30;
     cursor: grab;

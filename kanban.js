@@ -425,11 +425,30 @@
         return container;
     }
 
-    function getDragAfterElement(container, y) {
+    function getVerticalDragAfterElement(container, y) {
         const draggableElements = Array.from(container.querySelectorAll('.kanban-list-card-detail:not(.dragging):not(.substitute)'));
         var nearest = draggableElements.reduce((closest, child) => {
             const box = child.getBoundingClientRect();
             const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return {
+                    offset: offset,
+                    element: child
+                }
+            } else {
+                return closest
+            }
+        }, {
+            offset: Number.NEGATIVE_INFINITY
+        }).element;
+        return nearest;
+    }
+
+    function getHorizontalDragAfterElement(container, x) {
+        const draggableElements = Array.from(container.querySelectorAll('.kanban-list-wrapper:not(.dragging):not(.js-add-column)'));
+        var nearest = draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = x - box.left - box.width / 2;
             if (offset < 0 && offset > closest.offset) {
                 return {
                     offset: offset,
@@ -502,7 +521,7 @@
             if (!dragstart) {
                 return true;
             }
-            Context.off('mouseup').on('mouseup',function(event) {
+            Context.off('mouseup').on('mouseup', function (event) {
                 var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
                 var targetDom = $(event.target);
                 if (draggingElement !== null && (targetDom.hasClass('kanban-list-card-detail') && !targetDom.get(0).isSameNode(draggingElement) || targetDom.parents('.kanban-list-card-detail').length && !targetDom.parents('.kanban-list-card-detail').get(0).isSameNode(draggingElement))) {
@@ -519,7 +538,7 @@
                 if (isFirstMove || draggingElement !== null) {
                     mousemove(coordinates, isFirstMove ? event.target : draggingElement);
                 }
-                if(!isPointerInsideOf(Context.get(0), coordinates)) {
+                if (!isPointerInsideOf(Context.get(0), coordinates)) {
                     mouseup(draggingElement);
                 }
             });
@@ -625,7 +644,7 @@
 
                 if (!(originalCard.data('datum').header === column && settings.copyWhenDragFrom.includes(column)) && !settings.readonlyHeaders.includes(column) && cardDomHavingSameInstanceIdentity.length === 0) {
                     var containerVanillaDom = this.querySelector('.kanban-list-cards');
-                    var afterElementVanillaDom = getDragAfterElement(containerVanillaDom, position.y);
+                    var afterElementVanillaDom = getVerticalDragAfterElement(containerVanillaDom, position.y);
                     if (typeof afterElementVanillaDom === 'undefined') $(containerVanillaDom).append(_dragSubstituteDom);
                     else $(afterElementVanillaDom).before(_dragSubstituteDom);
                 }
@@ -783,7 +802,7 @@
         });
         if (settings.canAddColumn) {
             var kanbanListWrapperDom = $('<div>', {
-                'class': 'kanban-list-wrapper',
+                'class': 'kanban-list-wrapper js-add-column',
                 id: 'kanban-wrapper-null',
                 'data-column': null
             });
@@ -1110,10 +1129,81 @@
             if (event.originalEvent.key === 'Enter') {
                 Context.trigger('click');
             }
+        }).on('mousedown', '.kanban-list-wrapper', function (event) {
+            var bcr = this.getBoundingClientRect();
+            diffX = event.clientX - bcr.x;
+            diffY = event.clientY - bcr.y;
         }).on('dragstart', '.kanban-list-wrapper', function (event) {
+            var self = $(this);
+            var bcr = this.getBoundingClientRect();
+            outerWidth = self.outerWidth();
+            outerHeight = self.outerHeight();
+            width = self.width();
+            height = self.height();
+            dragstartColumn = true;
+
+            columnSubstitute.css({
+                width: outerWidth,
+                height: outerHeight
+            });
+            self.before(columnSubstitute);
+            self.addClass('dragging')
+            .css({
+                position: 'fixed',
+                top: bcr.y,
+                left: bcr.x
+            })
+            .width(width)
+            .height(height)
+            .detach();
+            Context.append(self);
             event.preventDefault();
-        }).on('dragover', function (event) {
+        }).on('mousemove', function (event) {
+            var draggingElement = document.querySelector('.kanban-list-wrapper.dragging');
+            if (dragstartColumn && draggingElement !== null) {
+                var coordinates = {
+                    x: event.clientX,
+                    y: event.clientY
+                };
+                moveColumn(coordinates, draggingElement);
+            }
+        }).on('mouseup', function (event) {
+            // column drag and drop
+            if (dragstartColumn) {
+                dragstartColumn = false;
+            }
+            // column drag and drop
         });
+
+        // Drag and drop column section
+        var diffX = 0, diffY = 0, outerWidth = 0, outerHeight = 0, width = 0, height = 0, dragstartColumn = false, dragover = false, columnSubstitute = $('<div>').addClass('kanban-list-wrapper-substitute');
+        function moveColumn(coordinates, element) {
+            var self = $(element);
+            self.css({
+                left: coordinates.x - diffX,
+                top: coordinates.y - diffY
+            });
+            checkColumnSubstitutePosition(coordinates);
+        }
+        function checkColumnSubstitutePosition(position) {
+            var containerDom = Context.find('.kanban-container').length ? Context.find('.kanban-container').get(0) : null;
+            if (containerDom === null || !isPointerInsideOf(containerDom, position)) {
+                return true;
+            }
+            var afterElementVanillaDom = getHorizontalDragAfterElement(containerDom, position.x);
+            if (typeof afterElementVanillaDom === 'undefined') {
+                var jsAddColumnWrapperDom = $('.kanban-list-wrapper.js-add-column');
+                if (jsAddColumnWrapperDom.length) {
+                    jsAddColumnWrapperDom.before(columnSubstitute);
+                } else {
+                    $(containerDom).append(columnSubstitute);
+                }
+            } else {
+                $(afterElementVanillaDom).before(columnSubstitute);
+            }
+        }
+        // Drag and drop column section
+
         Context.addClass('kanban-initialized');
 
         var kanbanOverlayDom
