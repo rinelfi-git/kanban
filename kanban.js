@@ -55,7 +55,7 @@
 
             Context.find(`.card-counter[data-column=${oldColumn}]`).text(newDataMatrix[oldColumn].length);
             Context.find(`.card-counter[data-column=${newColumn}]`).text(newDataMatrix[newColumn].length);
-            if (typeof settings.onCardDrop === 'function' && notify) settings.onCardDrop({ data, origin: oldColumn, target: newColumn }, { origin: oldDataList, target: newDataList });
+            if (typeof settings.onCardDrop === 'function' && notify) settings.onCardDrop({ data: data, columns: settings.headers, origin: oldColumn, target: newColumn }, { origin: oldDataList, target: newDataList });
         },
         onColumnDrop(element, Context, notify) {
             if (typeof notify !== 'boolean') {
@@ -144,7 +144,7 @@
                 case 'insert':
                     var cardsContainerDom = Context.find(`#kanban-wrapper-${column} .kanban-list-cards`);
                     var newData = {
-                        id: Date.now().toString(),
+                        id: 'Column' + Date.now(),
                         header: column,
                         title: textArea.val(),
                         position: cardsContainerDom.children().length - 1,
@@ -502,7 +502,7 @@
         var context = cardDom.parents('.kanban-initialized');
         var data = getDataFromCard(context, cardDom);
         var copy = $.extend({}, data);
-        copy.id = Date.now().toString();
+        copy.id = 'Column' + Date.now();
         copy.position = cardDom.parents('.kanban-list-cards').find('.kanban-list-card-detail').index(cardDom) + 1;
         addData(context, [copy]);
         var createdCard = buildCard({ data: copy, settings: context.data('settings') });
@@ -920,7 +920,7 @@
         var oldMatrix = context.data('matrix');
         var newMatrix = {};
         var newHeader = {
-            id: Date.now().toString(),
+            id: 'Column' + Date.now(),
             label: translate('New column'),
             menus: []
         };
