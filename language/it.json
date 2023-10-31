@@ -7,5 +7,7 @@
     "enter a title for this card": "inserisci un titolo per questa carta",
     "add a card": "aggiungi una carta",
     "current": "attuale",
-    "rename this column" : "rinomina questa colonna"
+    "rename this column": "rinomina questa colonna",
+    "add a new column": "aggiungi una nuova colonna",
+    "new column": "nuova colonna"
 }

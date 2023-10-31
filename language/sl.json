@@ -7,5 +7,7 @@
     "enter a title for this card": "vnesite naslov za to kartico",
     "add a card": "dodaj kartico",
     "current": "trenutno",
-    "rename this column" : "preimenuj to stolpec"
+    "rename this column": "preimenuj to stolpec",
+    "add a new column": "dodaj novo stolpec",
+    "new column": "nova kolona"
 }
