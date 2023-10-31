@@ -186,9 +186,10 @@
         var column;
         if (typeof criterias.columns !== 'undefined' && Array.isArray(criterias.columns)) {
             for (column in matrix) {
-                if (criterias.columns.include(column)) temporaryMatrix[column] = matrix[column];
+                if (criterias.columns.includes(column)) { temporaryMatrix[column] = matrix[column]; }
             }
             matrix = $.extend(true, {}, temporaryMatrix);
+            console.log(matrix);
             temporaryMatrix = {};
         }
         if (typeof criterias.card !== 'undefined' && criterias.card.length > 0) {
@@ -211,6 +212,22 @@
             }
             matrix = $.extend(true, {}, temporaryMatrix);
             temporaryMatrix = {};
+        }
+        if (typeof criterias.attributes === 'object') {
+            var keyList = Object.keys(criterias.attributes);
+            if (keyList.length) {
+                for (column in matrix) {
+                    temporaryMatrix[column] = matrix[column].filter(function (data) {
+                        var matchFilter = keyList.filter(function (filterKey) {
+                            return typeof data[filterKey] !== 'undefiend' && JSON.stringify(data[filterKey]) === JSON.stringify(criterias.attributes[filterKey]);
+                        }).length > 0;
+                        console.log(column, matchFilter);
+                        return matchFilter;
+                    });
+                }
+                matrix = $.extend(true, {}, temporaryMatrix);
+                temporaryMatrix = {};
+            }
         }
         return matrix;
     }
