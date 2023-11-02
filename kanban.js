@@ -1194,11 +1194,11 @@
             if (event.originalEvent.key === 'Enter') {
                 Context.trigger('click');
             }
-        }).on('mousedown', '.kanban-list-wrapper', function (event) {
+        }).on('mousedown', '.kanban-list-wrapper:not(.js-add-column)', function (event) {
             var bcr = this.getBoundingClientRect();
             diffX = event.clientX - bcr.x;
             diffY = event.clientY - bcr.y;
-        }).on('dragstart', '.kanban-list-wrapper', function (event) {
+        }).on('dragstart', '.kanban-list-wrapper:not(.js-add-column)', function (event) {
             var self = $(this);
             var bcr = this.getBoundingClientRect();
             outerWidth = self.outerWidth();
@@ -1225,7 +1225,7 @@
             Context.append(self);
             event.preventDefault();
         }).on('mousemove', function (event) {
-            var draggingElement = document.querySelector('.kanban-list-wrapper.dragging');
+            var draggingElement = document.querySelector('.kanban-list-wrapper.dragging:not(.js-add-column)');
             var coordinates = {
                 x: event.clientX,
                 y: event.clientY
@@ -1237,7 +1237,7 @@
             // column drag and drop
             if (dragstartColumn) {
                 dragstartColumn = false;
-                var draggingElement = $('.kanban-list-wrapper.dragging');
+                var draggingElement = $('.kanban-list-wrapper.dragging:not(.js-add-column)');
                 var bcr = columnSubstitute.get(0).getBoundingClientRect()
                 draggingElement.animate({
                     top: bcr.y,
