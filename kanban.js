@@ -884,7 +884,9 @@
             options = defaultOptions;
         } else {
             options = $.extend(true, {}, defaultOptions, options);
-        }
+        };
+        var headerDefaultOption = {editable: true};
+        header = $.extend(headerDefaultOption, header);
         var settings = Context.data('settings');
         var kanbanListWrapperDom = $('<div>', {
             'class': 'kanban-list-wrapper',
@@ -897,7 +899,7 @@
         var kanbanListHeaderDom = $('<div>', {
             'class': 'kanban-list-header',
             html: `<span class="column-header-text">${header.label}</span><input class="column-header-editor" value="${header.label}" type="text">${settings.showCardNumber ? `<span class="card-counter-container"> (<span data-column="${header.id}" class="card-counter">0</span>)</span>` : ''}`
-        });
+        }).data('editable', header.editable);
         var customMenuHtml = header.menus.map(function (menuMap) {
             return `<li class="dropdown-item" data-target="custom-menu">${menuMap.label}</li>`;
         }).join('');
@@ -951,6 +953,7 @@
         var newHeader = {
             id: 'Column' + Date.now(),
             label: translate('New column'),
+            editable: true,
             menus: []
         };
         var newColumn = buildColumn(context, newHeader);
@@ -1121,7 +1124,7 @@
                     wrapperDom.find('.js-add-card').data('context', Context);
                     break;
                 case 'column-rename':
-                    if (!settings.canEditHeader) {
+                    if (!settings.canEditHeader || !wrapperDom.find('.kanban-list-header').data('editable')) {
                         break;
                     }
                     var wrapperDom = self.parents('.kanban-list-wrapper');
@@ -1147,10 +1150,10 @@
             createColumnAfter(wrapperDom);
         }).on('click', '.column-header-text', function () {
             Context.trigger('click');
-            if (!settings.canEditHeader) {
+            var self = $(this);
+            if (!settings.canEditHeader || !self.parents('.kanban-list-header').data('editable')) {
                 return true;
             }
-            var self = $(this);
             var headerEditorDom = self.next('.column-header-editor');
             self.hide();
             headerEditorDom.css('display', 'inline-block');
