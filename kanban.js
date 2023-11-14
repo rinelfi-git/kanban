@@ -1353,7 +1353,7 @@
         Self.data('matrix', typeof Self.data('matrix') === 'object' ? Self.data('matrix') : {});
         Self.data('settings', typeof Self.data('settings') === 'object' ? Self.data('settings') : {});
         Self.data('filter', typeof Self.data('filter') === 'object' ? Self.data('filter') : {});
-        if (typeof options === 'object') {
+        if (typeof options === 'object' && !Self.hasClass('kanban-initialized')) {
             var defaultOptions = {
                 headers: [],
                 data: [],
