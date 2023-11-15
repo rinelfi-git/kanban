@@ -975,7 +975,7 @@
         $.each(matrix, function (column, oneMatrixData) {
             var listCardDom = Context.find('#kanban-wrapper-' + column + ' .kanban-list-cards');
             Context.find(`.kanban-list-header .card-counter[data-column=${column}]`).text(oneMatrixData.length);
-            listCardDom.children().remove();
+            listCardDom.empty();
             $.each(oneMatrixData, function (_, oneMatrixDatum) {
                 listCardDom.append(buildCard({
                     data: oneMatrixDatum,
@@ -996,7 +996,7 @@
         // Reordonner la matrice
         addData(Context, settings.data);
         // remove all columns
-        Context.find('.kanban-container').empty();
+        Context.find('.kanban-container').empty().html('');
         // build columns
         buildColumns(Context);
         buildCards(Context);
