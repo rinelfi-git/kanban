@@ -885,7 +885,7 @@
         } else {
             options = $.extend(true, {}, defaultOptions, options);
         };
-        var headerDefaultOption = {editable: true};
+        var headerDefaultOption = { editable: true };
         header = $.extend(headerDefaultOption, header);
         var settings = Context.data('settings');
         var kanbanListWrapperDom = $('<div>', {
@@ -995,6 +995,9 @@
 
         // Reordonner la matrice
         addData(Context, settings.data);
+        // remove all columns
+        Context.find('.kanban-container').empty();
+        // build columns
         buildColumns(Context);
         buildCards(Context);
 
@@ -1376,7 +1379,7 @@
             Self.data('settings', settings);
             Self.data('matrix', {});
             initKanban(Self);
-        } else if (typeof options === 'string' && typeof argument !== 'undefined') {
+        } else if (typeof options === 'string' && (typeof argument !== 'undefined' || ['destroy'].includes(options))) {
             var settings = Self.data('settings');
             switch (options) {
                 case 'setData':
@@ -1489,6 +1492,14 @@
                     }
                     moveCard(Self, createCardDom, column, argument.target, argument.position);
                     _dragAndDropManager.onCardDrop(createCardDom, Self, typeof argument.notify === 'boolean' ? argument.notify : false);
+                    break;
+                case 'destroy':
+                    if (typeof settings.onDestroy === 'function') {
+                        settings.onDestroy();
+                    }
+                    Self.removeClass('kanban-initialized');
+                    Self.removeData();
+                    Self.empty().html('');
                     break;
             }
         }
