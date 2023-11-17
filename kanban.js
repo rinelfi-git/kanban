@@ -278,7 +278,6 @@
 
     function buildNewCardInput(Context, column) {
         var wrapperDom = Context.find('#kanban-wrapper-' + column);
-        var settings = Context.data('settings');
         html = `
             <div class="card-composer">
                 <div class="list-card js-composer">
@@ -296,7 +295,6 @@
                 </div>
             </div>
             `;
-        if (typeof settings.onCreateCardOpen === 'function') settings.onCreateCardOpen(column);
         wrapperDom.off('editor-close');
         wrapperDom.on('editor-close', function () {
             wrapperDom.find('.card-composer').remove();
@@ -900,9 +898,7 @@
             'class': 'kanban-list-header',
             html: `<span class="column-header-text">${header.label}</span><input class="column-header-editor" value="${header.label}" type="text">${settings.showCardNumber ? `<span class="card-counter-container"> (<span data-column="${header.id}" class="card-counter">0</span>)</span>` : ''}`
         }).data('editable', header.editable);
-        var customMenuHtml = header.menus.map(function (menuMap) {
-            return `<li class="dropdown-item" data-target="custom-menu">${menuMap.label}</li>`;
-        }).join('');
+
         var dropdownCreateDom = $(`
         <ul class="dropdown-list">
             ${settings.canEditHeader && (settings.defaultColumnMenus.length === 0 || settings.defaultColumnMenus.includes('edit_header')) ? `<li class="dropdown-item" data-target="column-rename">${translate('rename this column').ucfirst()}</li>` : ''}
@@ -1018,9 +1014,13 @@
                 return !target.hasClass(classnames) && target.parents(`.${classnames}`).length === 0;
             }
 
-            if (excludeElementsList.every(notElement) && $('.card-composer').length === 0 && settings.canAddCard) {
+            if (excludeElementsList.every(notElement) && $('.card-composer').length === 0) {
                 var wrapperDom = self.parents('.kanban-list-wrapper');
                 var column = wrapperDom.data('column');
+                if (typeof settings.onInsertCardAction === 'function') settings.onInsertCardAction(column);
+                if(!settings.canAddCard) {
+                    return true;
+                }
                 wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(Context, column)).scrollTop(0);
                 wrapperDom.find('.js-card-title').focus();
                 wrapperDom.find('.js-add-card').data('context', Context);
@@ -1040,7 +1040,7 @@
             var parentCardDom = self.parents('.kanban-list-card-detail');
             var cardIndex = columnKanbanDoms.index(parentCardDom);
             var data = getDataFromCard(Context, parentCardDom);
-            if (typeof settings.onEditCardOpen === 'function') settings.onEditCardOpen(data);
+            if (typeof settings.onEditCardAction === 'function') settings.onEditCardAction(data);
 
             var overlayDom = $('.kanban-overlay');
             var scrollLeft = Context.scrollLeft();
@@ -1079,7 +1079,7 @@
             var filter = Context.data('filter');
             matrix = filterMatrixBy(matrix, filter);
             var data = matrix[columnId][cardIndex];
-            if (typeof settings.onMoveCardOpen === 'function') settings.onMoveCardOpen(data);
+            if (typeof settings.onMoveCardAction === 'function') settings.onMoveCardAction(data);
             var overlayDom = $('.kanban-overlay');
             var scrollLeft = Context.scrollLeft();
             Context.css('overflow-x', 'hidden');
@@ -1114,6 +1114,7 @@
             wrapperDom.find('.kanban-list-cards').append(buildNewCardInput(Context, columnId));
             wrapperDom.find('.js-card-title').focus();
             wrapperDom.find('.js-add-card').data('context', Context);
+            if (typeof settings.onInsertCardAction === 'function') settings.onInsertCardAction(columnId);
         }).on('click', '.js-add-card', addCardClicked).on('click', '.kanban-action-dropdown .dropdown-trigger', function () {
             $(this).next('.dropdown-list').toggleClass('open');
         }).on('click', '.kanban-action-dropdown .dropdown-list.open .dropdown-item', function () {
@@ -1125,12 +1126,16 @@
                     wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(Context, column)).scrollTop(0);
                     wrapperDom.find('.js-card-title').focus();
                     wrapperDom.find('.js-add-card').data('context', Context);
+                    if (typeof settings.onInsertCardAction === 'function') settings.onInsertCardAction(column);
                     break;
                 case 'column-rename':
+                    var wrapperDom = self.parents('.kanban-list-wrapper');
+                    if(typeof settings.onEditHeaderAction === 'function') {
+                        settings.onEditHeaderAction(wrapperDom.data('column'));
+                    }
                     if (!settings.canEditHeader || !wrapperDom.find('.kanban-list-header').data('editable')) {
                         break;
                     }
-                    var wrapperDom = self.parents('.kanban-list-wrapper');
                     var headerEditorDom = wrapperDom.find('.column-header-editor');
                     wrapperDom.find('.column-header-text').hide();
                     headerEditorDom.css('display', 'inline-block');
@@ -1154,6 +1159,10 @@
         }).on('click', '.column-header-text', function () {
             Context.trigger('click');
             var self = $(this);
+            var wrapperDom = self.parents('.kanban-list-wrapper');
+            if(typeof settings.onEditHeaderAction === 'function') {
+                settings.onEditHeaderAction(wrapperDom.data('column'));
+            }
             if (!settings.canEditHeader || !self.parents('.kanban-list-header').data('editable')) {
                 return true;
             }
@@ -1174,7 +1183,7 @@
                 activeDropdownDomList.removeClass('open');
             }
             var cancelWhenClass = ['column-header-text', 'column-header-editor', 'dropdown-item', 'kanban-new-column'];
-            if (visibleHeaderEditor.length && cancelWhenClass.every(function (oneClass) { return !$(event.target).hasClass(oneClass) })) {
+            if (visibleHeaderEditor.length && cancelWhenClass.every(function (oneClass) {return !$(event.target).hasClass(oneClass) })) {
                 var settings = Context.data('settings');
                 var column = visibleHeaderEditor.parents('.kanban-list-wrapper').data('column').toString();
                 var headerIndex = settings.headers.findIndex(function (oneHeader) {
@@ -1186,7 +1195,7 @@
                 var values = { old: labelDom.text(), new: visibleHeaderEditor.val() };
                 visibleHeaderEditor.css('display', '');
                 labelDom.text(visibleHeaderEditor.val()).css('display', '');
-                if (typeof settings.onHeaderChange === 'function') settings.onHeaderChange({ column: column, values });
+                if (typeof settings.onHeaderChange === 'function') settings.onHeaderChange({ column: column, values: values });
             }
         }).on('keydown', '.card-composer', function (event) {
             if (event.originalEvent.key === 'Enter') {
