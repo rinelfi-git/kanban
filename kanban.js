@@ -443,11 +443,11 @@
         listCardDetailContainer
             .append(listCardDetailText)
             .append(cardActionDom);
-        if (data.contributors.length) {
-            listCardDetailContainer.append(buildContributorsDropdown(data.contributors))
-        }
         if (cardFooterDom.children().length) {
             listCardDetailContainer.append(cardFooterDom);
+        }
+        if (data.contributors.length) {
+            listCardDetailContainer.append(buildContributorsDropdown(data.contributors))
         }
         return listCardDetailContainer;
     }
@@ -1105,7 +1105,7 @@
                 overlayDom.removeClass('active').empty();
             });
         }).on('click', '.kanban-list-card-detail:not(.dragging) .contributors-preview', function () {
-            $(this).parents('.kanban-footer-card').next('.contributor-container').slideToggle({ duration: 100 });
+            $(this).parents('.kanban-list-card-detail').find('.contributor-container').slideToggle({ duration: 100 });
         }).on('click', '.kanban-list-card-detail:not(.dragging) .card-action', function () {
             var self = $(this);
             var cardDom = self.parents('.kanban-list-card-detail');
