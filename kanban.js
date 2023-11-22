@@ -553,6 +553,7 @@
         function externalDropCard(event) {
             var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
             var targetDom = $(event.target);
+            Context.find('.kanban-list-wrapper').attr('draggable', settings.canMoveColumn.toString());
             if (draggingElement !== null && (targetDom.hasClass('kanban-list-card-detail') && !targetDom.get(0).isSameNode(draggingElement) || targetDom.parents('.kanban-list-card-detail').length && !targetDom.parents('.kanban-list-card-detail').get(0).isSameNode(draggingElement))) {
                 mouseup(draggingElement);
             }
@@ -560,13 +561,14 @@
 
         function movingCardDrop(event) {
             var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
-            var isFirstMove = event.target.classList.contains('kanban-list-card-detail') && draggingElement === null;
+            var isFirstMove = dragstart && ($(event.target).hasClass('kanban-list-card-detail') || $(event.target).parents('.kanban-list-card-detail').length > 0) && draggingElement === null;
             var coordinates = {
                 x: event.clientX,
                 y: event.clientY
             };
             if (isFirstMove || draggingElement !== null) {
-                mousemove(coordinates, isFirstMove ? event.target : draggingElement);
+                draggingElement = draggingElement !== null ? draggingElement : ($(event.target).hasClass('kanban-list-card-detail') ? event.target : $(event.target).parents('.kanban-list-card-detail').get(0))
+                mousemove(coordinates, draggingElement);
             }
             if (!isPointerInsideOf(Context.get(0), coordinates)) {
                 mouseup(draggingElement);
@@ -575,8 +577,15 @@
 
         function mousedown(event) {
             if (event.button === 2) return false;
+            event.stopPropagation();
             var self = $(this);
             Context.find('.kanban-list-wrapper').attr('draggable', 'false');
+            // check selected elelemnt
+            var prohibedClasses = ['contributors-preview', 'card-action', 'contributor-container'];
+            var filteredTarget = prohibedClasses.filter(function (prohibedClass) {
+                return $(event.target).hasClass(prohibedClass) || $(event.target).parents('.' + prohibedClass).length > 0;
+            });
+            // check selected elelemnt
             originalCard = self;
             var bcr = this.getBoundingClientRect();
             diffX = event.clientX - bcr.x;
@@ -585,7 +594,7 @@
             outerHeight = self.outerHeight();
             width = self.width();
             height = self.height();
-            dragstart = settings.canMoveCard && self.data('datum').canMoveCard;
+            dragstart = settings.canMoveCard && self.data('datum').canMoveCard && filteredTarget.length === 0;
             isCopyWhenDragFromColumn = settings.copyWhenDragFrom.includes(self.data('datum').header);
             originalCard.off('mouseup').one('mouseup', function () {
                 mouseup(this);
@@ -596,9 +605,6 @@
                 cardCopy.off('mouseup').one('mouseup', function () {
                     mouseup(this);
                 });
-            }
-            if (!dragstart) {
-                return true;
             }
             Context.on('mouseup', externalDropCard);
             $(document).on('mousemove', movingCardDrop);
@@ -1218,6 +1224,7 @@
             diffY = event.clientY - bcr.y;
         }).on('dragstart', '.kanban-list-wrapper:not(.js-add-column)', function (event) {
             var self = $(this);
+            event.stopPropagation();
             var bcr = this.getBoundingClientRect();
             outerWidth = self.outerWidth();
             outerHeight = self.find('.kanban-list-content').outerHeight();
