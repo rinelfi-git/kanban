@@ -486,8 +486,8 @@ textarea.list-card-composer-textarea:focus {
 .select {
     position: relative;
     display: flex;
-    height: 3em;
-    border-radius: .25em;
+    height: 1.7em;
+    border-radius: 0.25em;
     overflow: hidden;
     margin-bottom: 10px;
 }
@@ -505,7 +505,7 @@ textarea.list-card-composer-textarea:focus {
     pointer-events: none;
     border-left: 1px solid var(--ds-border);
     text-align: center;
-    padding: 0.9em 0;
+    padding: 0.3em 0;
 }
 
 /* Transition */
