@@ -293,7 +293,7 @@
 	function loadTranslation(language, from) {
 		_currentLanguage = language;
 		return new Promise(function (resolve) {
-			$.getJSON(typeof from === 'string' ? from : '' + 'language/' + language + '.json', function (data) {
+			$.getJSON((typeof from === 'string' ? from : '') + 'language/' + language + '.json', function (data) {
 				_dictionary[language] = data;
 				resolve();
 			})
