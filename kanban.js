@@ -1137,6 +1137,9 @@
 		context.data('matrix', newMatrix);
 		wrapperDom.after(newColumn);
 		newColumn.find('.column-header-text').trigger('click');
+		if(typeof settings.onColumnInsert === 'function') {
+			settings.onColumnInsert.call(context, newHeader);
+		}
 	}
 
 	function buildCards(Context, matrix) {
