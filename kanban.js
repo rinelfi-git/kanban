@@ -185,13 +185,16 @@
 					break;
 				case 'insert':
 					var cardsContainerDom = Context.find('#kanban-wrapper-' + column + ' .kanban-list-cards');
+					var createdId = 'Column' + Date.now();
 					var newData = {
-						id : 'Column' + Date.now(),
+						id : createdId,
 						header : column,
 						title : textArea.val(),
+						instanceIdentity: createdId,
 						position : cardsContainerDom.children().length - 1,
 						editable : settings.canEditCard,
 						canMoveCard : settings.canMoveCard,
+						isClickable: true,
 						html : false,
 						contributors : [],
 						actions : []
@@ -500,7 +503,6 @@
 						.attr('data-original-title', oneAction.bstooltip.text.replace(/"/g, '&quot;'))
 						.addClass('tooltips');
 				}
-				// console.log(first)
 				// Spécificité communecter
 				cardFooterDom.append(actionDom);
 				if (oneAction.action) {
@@ -937,6 +939,7 @@
 				instanceIdentity : datumMap.id,
 				editable : settings.canEditCard,
 				canMoveCard : settings.canMoveCard,
+				isClickable: true,
 				actions : [],
 				contributors : []
 			};
@@ -1207,24 +1210,24 @@
 		}).on('click', '.kanban-list-card-detail:not(.dragging)', function (event) {
 			event.stopPropagation();
 			var parentsDomList = ['.contributor-container', '.kanban-footer-card', '.kanban-list-card-action'];
-			if (parentsDomList.some(function (oneParentDom) { return $(event.target).parents(oneParentDom).length > 0 })) {
+			if (parentsDomList.some(function (oneParentDom) { return $(event.target).parents(oneParentDom).length > 0; })) {
 				return false;
 			}
 			var self = $(this);
 			var data = self.data('datum');
-			if (typeof settings.onCardClick === 'function') {
-				settings.onCardClick(data, this);
+			if (typeof settings.onCardClick === 'function' && data.isClickable) {
+				settings.onCardClick.call(this, data);
 			}
 		}).on('click', '.kanban-list-card-detail:not(.dragging) .kanban-list-card-edit', function (event) {
 			event.stopPropagation();
 			var self = $(this);
 			var columnId = self.data('column');
-			var columnKanbanDoms = Context.find('.kanban-list-wrapper[data-column="' + columnId + '"] .kanban-list-card-detail')
+			var columnKanbanDoms = Context.find('.kanban-list-wrapper[data-column="' + columnId + '"] .kanban-list-card-detail');
 			var parentCardDom = self.parents('.kanban-list-card-detail');
 			var cardIndex = columnKanbanDoms.index(parentCardDom);
 			var data = getDataFromCard(Context, parentCardDom);
 			if (typeof settings.onEditCardAction === 'function') {
-				settings.onEditCardAction(data);
+				settings.onEditCardAction.call(this, data);
 			}
 
 			var overlayDom = $('.kanban-overlay');
@@ -1740,6 +1743,6 @@
 			mediaQueryAndMaxWidth(Self, 770);
 		});
 		return this;
-	}
+	};
 })
 (jQuery, window);
