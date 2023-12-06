@@ -4,9 +4,7 @@
 	};
 
 	var _dragSubstituteDom = $('<div>', {
-		'class' : 'kanban-list-card-detail substitute',
-		width : outerWidth,
-		height : outerHeight
+		'class' : 'kanban-list-card-detail substitute'
 	});
 	var _dictionary = {};
 	var _currentLanguage;
@@ -99,7 +97,7 @@
 				});
 			}
 		}
-	}
+	};
 
 	/**
 	 * Formater du texte avec des remplacements
@@ -119,7 +117,7 @@
 				return replacement[occurrence];
 			}
 			return match;
-		})
+		});
 	}
 
 	function dataMatrixIndex(datum, matrix) {
@@ -267,7 +265,7 @@
 				for (column in matrix) {
 					temporaryMatrix[column] = matrix[column].filter(function (data) {
 						return keyList.filter(function (filterKey) {
-							return typeof data[filterKey] !== 'undefined' && JSON.stringify(data[filterKey]) === JSON.stringify(criterias.attributes[filterKey]);
+							return typeof data[filterKey] !== 'undefined' && W.JSON.stringify(data[filterKey]) === W.JSON.stringify(criterias.attributes[filterKey]);
 						}).length > 0;
 					});
 				}
@@ -292,11 +290,11 @@
 
 	function loadTranslation(language, from) {
 		_currentLanguage = language;
-		return new Promise(function (resolve) {
+		return new W.Promise(function (resolve) {
 			$.getJSON((typeof from === 'string' ? from : '') + 'language/' + language + '.json', function (data) {
 				_dictionary[language] = data;
 				resolve();
-			})
+			});
 		});
 	}
 
@@ -326,7 +324,7 @@
 
 	function buildNewCardInput(Context, column) {
 		var wrapperDom = Context.find('#kanban-wrapper-' + column);
-		html = printf('' +
+		var html = printf('' +
 			'<div class="card-composer">' +
 			'    <div class="list-card js-composer">' +
 			'        <div class="list-card-details u-clearfix">' +
@@ -486,7 +484,7 @@
 					}
 				}
 				html = ['string', 'number'].includes(typeof oneAction.badge) ? oneAction.badge : '';
-				html = html + (typeof oneAction.icon === 'string' ? html.length > 0 ? ' ' : '' + ' <span class="' + oneAction.icon + '"></span>' : '');
+				html = html + (typeof oneAction.icon === 'string' ? ((html.length > 0 ? ' ' : '') + ' <span class="' + oneAction.icon + '"></span>') : '');
 				var actionDom = $('<button>', {
 					'class' : 'card-action',
 					html : html
@@ -502,6 +500,7 @@
 						.attr('data-original-title', oneAction.bstooltip.text.replace(/"/g, '&quot;'))
 						.addClass('tooltips');
 				}
+				// console.log(first)
 				// Spécificité communecter
 				cardFooterDom.append(actionDom);
 				if (oneAction.action) {
@@ -1137,7 +1136,7 @@
 		context.data('matrix', newMatrix);
 		wrapperDom.after(newColumn);
 		newColumn.find('.column-header-text').trigger('click');
-		if(typeof settings.onColumnInsert === 'function') {
+		if (typeof settings.onColumnInsert === 'function') {
 			settings.onColumnInsert.call(context, newHeader);
 		}
 	}
@@ -1674,7 +1673,7 @@
 					filter = Self.data('filter');
 					matrix = filterMatrixBy(matrix, filter);
 					if (deletedId !== null) {
-						var createCardDom = Self.find('.kanban-list-card-detail[data-id=' + deletedId + ']');
+						createCardDom = Self.find('.kanban-list-card-detail[data-id=' + deletedId + ']');
 						createCardDom.remove();
 						bindDragAndDropEvents(Self, _dragAndDropManager);
 						if (typeof settings.onRenderDone === 'function') {
@@ -1737,9 +1736,9 @@
 					break;
 			}
 		}
-		W.onresize = function () {
+		W.addEventListener('resize', function () {
 			mediaQueryAndMaxWidth(Self, 770);
-		}
+		});
 		return this;
 	}
 })
