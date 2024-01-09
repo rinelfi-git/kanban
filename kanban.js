@@ -4,13 +4,13 @@
 	};
 
 	var _dragSubstituteDom = $('<div>', {
-		'class' : 'kanban-list-card-detail substitute'
+		'class': 'kanban-list-card-detail substitute'
 	});
 	var _dictionary = {};
 	var _currentLanguage;
 	var _dragAndDropManager = {
-		prependOnly : false,
-		onCardDrop : function (self, Context, notify) {
+		prependOnly: false,
+		onCardDrop: function (self, Context, notify) {
 			var i;
 			if (typeof notify !== 'boolean') {
 				notify = true;
@@ -42,13 +42,13 @@
 
 
 			var oldDataList = newDataMatrix[oldColumn];
-			for (i = 0 ; i < oldDataList.length ; i++) {
+			for (i = 0; i < oldDataList.length; i++) {
 				if (typeof oldDataList[i].position === 'number') {
 					oldDataList[i].position = i;
 				}
 			}
 			var newDataList = newDataMatrix[newColumn];
-			for (i = 0 ; i < newDataList.length ; i++) {
+			for (i = 0; i < newDataList.length; i++) {
 				if (typeof newDataList[i].position === 'number') {
 					newDataList[i].position = i;
 				}
@@ -59,18 +59,23 @@
 			Context.data('matrix', newDataMatrix);
 			newDataMatrix = filterMatrixBy(newDataMatrix, filter);
 
-			Context.find('.card-counter[data-column="  ' + oldColumn + ' "]').text(newDataMatrix[oldColumn].length);
+			Context.find('.card-counter[data-column="' + oldColumn + '"]').text(newDataMatrix[oldColumn].length);
 			Context.find('.card-counter[data-column="' + newColumn + '"]').text(newDataMatrix[newColumn].length);
 			if (typeof settings.onCardDrop === 'function' && notify) {
-				settings.onCardDrop({
-					data : data,
-					columns : settings.headers,
-					origin : oldColumn,
-					target : newColumn
-				}, {origin : oldDataList, target : newDataList});
+				var columnInfo = {
+					data: data,
+					columns: settings.headers,
+					origin: oldColumn,
+					target: newColumn
+				};
+				var dataInfo = {
+					origin: oldDataList,
+					target: newDataList
+				};
+				settings.onCardDrop.call(Context, columnInfo, dataInfo);
 			}
 		},
-		onColumnDrop : function (element, Context, notify) {
+		onColumnDrop: function (element, Context, notify) {
 			if (typeof notify !== 'boolean') {
 				notify = true;
 			}
@@ -90,10 +95,10 @@
 			Context.data('matrix', matrix);
 			if (typeof settings.onColumnDrop === 'function' && notify) {
 				settings.onColumnDrop({
-					column : columnName,
-					columns : matrixIndexes,
-					origin : oldPosition,
-					target : position
+					column: columnName,
+					columns: matrixIndexes,
+					origin: oldPosition,
+					target: position
 				});
 			}
 		}
@@ -175,7 +180,7 @@
 					filter = Context.data('filter');
 					matrix = filterMatrixBy(matrix, filter);
 					if (typeof settings.onCardUpdate === 'function') {
-						settings.onCardUpdate({oldValue : oldValue, newValue : newValue});
+						settings.onCardUpdate({ oldValue: oldValue, newValue: newValue });
 					}
 					buildCards(Context, matrix);
 					bindDragAndDropEvents(Context, _dragAndDropManager);
@@ -187,17 +192,17 @@
 					var cardsContainerDom = Context.find('#kanban-wrapper-' + column + ' .kanban-list-cards');
 					var createdId = 'Column' + Date.now();
 					var newData = {
-						id : createdId,
-						header : column,
-						title : textArea.val(),
+						id: createdId,
+						header: column,
+						title: textArea.val(),
 						instanceIdentity: createdId,
-						position : cardsContainerDom.children().length - 1,
-						editable : settings.canEditCard,
-						canMoveCard : settings.canMoveCard,
+						position: cardsContainerDom.children().length - 1,
+						editable: settings.canEditCard,
+						canMoveCard: settings.canMoveCard,
 						isClickable: true,
-						html : false,
-						contributors : [],
-						actions : []
+						html: false,
+						contributors: [],
+						actions: []
 					};
 					matrix[column].push(newData);
 					Context.data('matrix', matrix);
@@ -209,8 +214,8 @@
 					});
 					if (index >= 0) {
 						cardsContainerDom.append(buildCard({
-							data : newData,
-							settings : settings
+							data: newData,
+							settings: settings
 						}));
 						Context.find('.card-counter[data-column="' + column + '"]').text(filteredMatrix[column].length);
 					}
@@ -304,7 +309,7 @@
 	function mediaQueryAndMaxWidth(container, width) {
 		if (container.outerWidth() <= width) {
 			container.find('.kanban-list-card-edit, .kanban-list-card-switch').css({
-				'display' : 'inline-block'
+				'display': 'inline-block'
 			});
 		} else {
 			container.find('.kanban-list-card-edit, .kanban-list-card-switch').css('display', '');
@@ -343,9 +348,9 @@
 			'        </div>' +
 			'    </div>' +
 			'</div>', {
-			cardTitle : translate('enter a title for this card'),
-			buttonMessage : translate('add a card').ucfirst(),
-			column : column
+			cardTitle: translate('enter a title for this card'),
+			buttonMessage: translate('add a card').ucfirst(),
+			column: column
 		});
 		wrapperDom.off('editor-close');
 		wrapperDom.on('editor-close', function () {
@@ -394,15 +399,15 @@
 
 	function buildContributorsDropdown(contributorsList) {
 		var html = printf('<ul class="contributor-list">{{contributorList}}</ul>', {
-			contributorList : contributorsList.map(function (oneContributor) {
+			contributorList: contributorsList.map(function (oneContributor) {
 				var dataList = typeof oneContributor.data === 'object' ? oneContributor.data : {};
 				var dataString = '';
 				$.each(dataList, function (key, value) {
 					dataString += printf('data-{{replacedKey}}="{{value}}" ', {
-						replacedKey : key.replace(/A-Z/g, function (match) {
+						replacedKey: key.replace(/A-Z/g, function (match) {
 							return '-' + match.toLowerCase();
 						}),
-						value : value.toString().replace(/"/g, '&quot;')
+						value: value.toString().replace(/"/g, '&quot;')
 					});
 				});
 				if (dataString.length > 0) {
@@ -415,9 +420,9 @@
 					'   </div>' +
 					'   <p class="contributor-name">{{name}}</p>' +
 					'</li>', {
-					dataString : dataString,
-					image : oneContributor.image,
-					name : oneContributor.name
+					dataString: dataString,
+					image: oneContributor.image,
+					name: oneContributor.name
 				});
 			}).join('')
 		});
@@ -435,32 +440,36 @@
 			.addClass('kanban-list-card-detail')
 			.data('datum', data);
 
+		if (data.columnReference) {
+			listCardDetailContainer.addClass('column-referer');
+		}
+
 		var listCardDetailText = $('<span>', {
-			'class' : 'kanban-list-card-title'
+			'class': 'kanban-list-card-title'
 		});
 
 		if (data.html) { listCardDetailText.html(data.title); } else { listCardDetailText.text(data.title); }
 
 		var listCardDetailSwitch = $('<button>', {
-			'class' : 'kanban-list-card-switch',
-			html : '<span class="fa fa-arrows-h"></span>',
-			'data-column' : data.header
+			'class': 'kanban-list-card-switch',
+			html: '<span class="fa fa-arrows-h"></span>',
+			'data-column': data.header
 		});
 		var listCardDetailEdit = $('<button>', {
-			'class' : 'kanban-list-card-edit',
-			html : '<span class="fa fa-pencil"></span>',
-			'data-column' : data.header
+			'class': 'kanban-list-card-edit',
+			html: '<span class="fa fa-pencil"></span>',
+			'data-column': data.header
 		});
 		var cardDuplicate = $('<button>', {
-			'class' : 'card-duplicate',
-			html : '<span class="fa fa-clone"></span>',
-			'data-column' : data.header
+			'class': 'card-duplicate',
+			html: '<span class="fa fa-clone"></span>',
+			'data-column': data.header
 		});
 		var cardActionDom = $('<div>', {
-			'class' : 'kanban-list-card-action'
+			'class': 'kanban-list-card-action'
 		});
 		var cardFooterDom = $('<div>', {
-			'class' : 'kanban-footer-card'
+			'class': 'kanban-footer-card'
 		});
 		var contributorDom = $('<button>')
 			.addClass('contributors-preview')
@@ -489,8 +498,8 @@
 				html = ['string', 'number'].includes(typeof oneAction.badge) ? oneAction.badge : '';
 				html = html + (typeof oneAction.icon === 'string' ? ((html.length > 0 ? ' ' : '') + ' <span class="' + oneAction.icon + '"></span>') : '');
 				var actionDom = $('<button>', {
-					'class' : 'card-action',
-					html : html
+					'class': 'card-action',
+					html: html
 				});
 				if (typeof oneAction.className !== 'undefined' && oneAction.className.length > 0) {
 					actionDom.addClass('custom').addClass(oneAction.className);
@@ -533,12 +542,12 @@
 		var position = options.position;
 		var size = options.size;
 		var container = $('<div>', {
-			'class' : 'card-composer',
-			css : {
-				position : 'fixed',
-				top : position.y,
-				left : position.x,
-				width : size.width
+			'class': 'card-composer',
+			css: {
+				position: 'fixed',
+				top: position.y,
+				left: position.x,
+				width: size.width
 			}
 		});
 		container.html(printf('' +
@@ -552,11 +561,11 @@
 			'       <input class="nch-button nch-button--primary confirm mod-compact js-add-card" type="submit" value="{{buttonText}}" data-action="update" data-column="{{column}}" data-target="{{index}}">' +
 			'   </div>' +
 			'</div>', {
-			cardTitle : translate('enter a title for this card'),
-			cardName : data.title,
-			buttonText : translate('save').ucfirst(),
-			column : options.column,
-			index : options.index
+			cardTitle: translate('enter a title for this card'),
+			cardName: data.title,
+			buttonText: translate('save').ucfirst(),
+			column: options.column,
+			index: options.index
 		}));
 		return container;
 	}
@@ -568,14 +577,14 @@
 			var offset = y - box.top - box.height / 2;
 			if (offset < 0 && offset > closest.offset) {
 				return {
-					offset : offset,
-					element : child
+					offset: offset,
+					element: child
 				}
 			} else {
 				return closest
 			}
 		}, {
-			offset : Number.NEGATIVE_INFINITY
+			offset: Number.NEGATIVE_INFINITY
 		}).element;
 	}
 
@@ -586,20 +595,20 @@
 			var offset = x - box.left - box.width / 2;
 			if (offset < 0 && offset > closest.offset) {
 				return {
-					offset : offset,
-					element : child
+					offset: offset,
+					element: child
 				}
 			} else {
 				return closest
 			}
 		}, {
-			offset : Number.NEGATIVE_INFINITY
+			offset: Number.NEGATIVE_INFINITY
 		}).element;
 	}
 
 	function duplicateCard(cardDom, options) {
 		var defaultOptions = {
-			bindDragAndDropEvent : false
+			bindDragAndDropEvent: false
 		}
 		if (typeof options !== 'object') {
 			options = defaultOptions;
@@ -612,7 +621,7 @@
 		copy.id = 'Column' + Date.now();
 		copy.position = cardDom.parents('.kanban-list-cards').find('.kanban-list-card-detail').index(cardDom) + 1;
 		addData(context, [copy]);
-		var createdCard = buildCard({data : copy, settings : context.data('settings')});
+		var createdCard = buildCard({ data: copy, settings: context.data('settings') });
 		cardDom.after(createdCard);
 		if (options.bindDragAndDropEvent) {
 			bindDragAndDropEvents(context, _dragAndDropManager);
@@ -647,8 +656,8 @@
 			var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
 			var isFirstMove = dragstart && ($(event.target).hasClass('kanban-list-card-detail') || $(event.target).parents('.kanban-list-card-detail').length > 0) && draggingElement === null;
 			var coordinates = {
-				x : event.clientX,
-				y : event.clientY
+				x: event.clientX,
+				y: event.clientY
 			};
 			if (isFirstMove || draggingElement !== null) {
 				draggingElement = draggingElement !== null ? draggingElement : ($(event.target).hasClass('kanban-list-card-detail') ? event.target : $(event.target).parents('.kanban-list-card-detail').get(0))
@@ -686,7 +695,7 @@
 				mouseup(this);
 			});
 			if (isCopyWhenDragFromColumn) {
-				cardCopy = duplicateCard(self, {bindDragAndDropEvents : false});
+				cardCopy = duplicateCard(self, { bindDragAndDropEvents: false });
 				cardCopy.hide();
 				cardCopy.off('mouseup').one('mouseup', function () {
 					mouseup(this);
@@ -717,22 +726,22 @@
 				self.addClass('dragging').css('position', 'fixed');
 				self.width(width).height(height);
 				self.css({
-					top : bcr.y,
-					left : bcr.x
+					top: bcr.y,
+					left: bcr.x
 				});
 				_dragSubstituteDom.css({
-					width : outerWidth,
-					height : outerHeight
+					width: outerWidth,
+					height: outerHeight
 				});
 				self.detach();
 				Context.append(self);
 				dragover = true;
-				checkDragOver({x : bcr.x, y : bcr.y});
+				checkDragOver({ x: bcr.x, y: bcr.y });
 			}
 			if (dragover) {
 				self.css({
-					left : coordinates.x - diffX,
-					top : coordinates.y - diffY
+					left: coordinates.x - diffX,
+					top: coordinates.y - diffY
 				});
 				checkDragOver(coordinates);
 			}
@@ -764,30 +773,44 @@
 			}
 			dragover = false;
 			var dragMarker = _dragSubstituteDom.is(':visible') ? _dragSubstituteDom : originalCard;
+			var cardColumnReferencer = Context.find('.kanban-list-card-detail.column-referer.hovered');
+			cardColumnReferencer.removeClass('hovered');
 			var bcr = dragMarker.get(0).getBoundingClientRect();
 
-			self.animate({
-				top : bcr.y,
-				left : bcr.x
-			}, {
-				easing : 'easeOutQuad',
-				duration : 250,
-				complete : function () {
-					self.removeClass('dragging').css({position : '', top : '', left : '', width : '', height : '', transform : ''});
-					dragMarker.after(self);
-					_dragSubstituteDom.detach();
-					if (dragMarker === _dragSubstituteDom) {
-						if (typeof events.onCardDrop === 'function') {
-							events.onCardDrop(self, Context);
-						}
-					} else {
-						deleteData(Context, {id : self.data('datum').id});
-						self.remove();
-					}
-					bindDragAndDropEvents(Context, _dragAndDropManager);
+			if (cardColumnReferencer.length) {
+				self.removeClass('dragging').css({ position: '', top: '', left: '', width: '', height: '', transform: '' });
+				self.hide(250, function () {
+					var referencerData = cardColumnReferencer.data('datum');
+					console.log('Moving', self, referencerData.columnReference)
+					moveCard(Context, self, referencerData.columnReference, cardColumnReferencer.parents('.kanban-list-cards').children().length);
+					self.show();
+					_dragAndDropManager.onCardDrop(self, Context);
 					initValues();
-				}
-			});
+				});
+			} else {
+				self.animate({
+					top: bcr.y,
+					left: bcr.x
+				}, {
+					easing: 'easeOutQuad',
+					duration: 250,
+					complete: function () {
+						self.removeClass('dragging').css({ position: '', top: '', left: '', width: '', height: '', transform: '' });
+						dragMarker.after(self);
+						_dragSubstituteDom.detach();
+						if (dragMarker === _dragSubstituteDom) {
+							if (typeof events.onCardDrop === 'function') {
+								events.onCardDrop(self, Context);
+							}
+						} else {
+							deleteData(Context, { id: self.data('datum').id });
+							self.remove();
+						}
+						bindDragAndDropEvents(Context, _dragAndDropManager);
+						initValues();
+					}
+				});
+			}
 		}
 
 		function checkDragOver(position) {
@@ -797,12 +820,19 @@
 					return true;
 				}
 				var self = $(this);
+				self.find('.kanban-list-card-detail.column-referer').removeClass('hovered');
+				var hoverefReferenceColumnCard = self.find('.kanban-list-card-detail.column-referer').filter(function () {
+					return isPointerInsideOf(this, position);
+				});
 				var column = self.parents('.kanban-list-wrapper').attr('data-column');
 				var cardDomHavingSameInstanceIdentity = self.find('.kanban-list-card-detail:not(.substitute)').filter(function () {
 					return originalCard.data('datum').instanceIdentity === $(this).data('datum').instanceIdentity;
 				});
 
-				if (!(originalCard.data('datum').header === column && settings.copyWhenDragFrom.includes(column)) && !settings.readonlyHeaders.includes(column) && cardDomHavingSameInstanceIdentity.length === 0) {
+				if (hoverefReferenceColumnCard.length) {
+					_dragSubstituteDom.detach();
+					hoverefReferenceColumnCard.addClass('hovered');
+				} else if (!(originalCard.data('datum').header === column && settings.copyWhenDragFrom.includes(column)) && !settings.readonlyHeaders.includes(column) && cardDomHavingSameInstanceIdentity.length === 0) {
 					var containerVanillaDom = this.querySelector('.kanban-list-cards');
 					var afterElementVanillaDom = getVerticalDragAfterElement(containerVanillaDom, position.y);
 					if (typeof afterElementVanillaDom === 'undefined') {
@@ -851,7 +881,7 @@
 		var matrixLengthInHeader = isColumnReadOnly(selectedData.header) ? (filteredHeaders.length ? matrixData[filteredHeaders[0].id].length + 1 : 0) : matrixData[selectedData.header].length;
 		var indexOfData = matrixData[selectedData.header].indexOf(selectedData);
 		var moveCardContext = $('<div>', {
-			'class' : 'kanban-move-card'
+			'class': 'kanban-move-card'
 		});
 		moveCardContext.empty().html(printf('' +
 			'<h2 class="kanban-card-move-header" {{contextHeader}}</h2>' +
@@ -868,41 +898,41 @@
 			'    </select>' +
 			'</div>' +
 			'<input class="nch-button nch-button--primary wide js-submit" type="submit" value="{{buttonText}}">', {
-			contextHeader : shouldCopy(selectedData.header) ? translate('copy the card').ucfirst() : translate('move the card').ucfirst(),
-			columnLabel : translate('list').ucfirst(),
-			disabledSelect : filteredHeaders.length === 0 ? 'disabled="disabled"' : '',
-			columnOptions : filteredHeaders.map(function (oneHeaderMap) {
+			contextHeader: shouldCopy(selectedData.header) ? translate('copy the card').ucfirst() : translate('move the card').ucfirst(),
+			columnLabel: translate('list').ucfirst(),
+			disabledSelect: filteredHeaders.length === 0 ? 'disabled="disabled"' : '',
+			columnOptions: filteredHeaders.map(function (oneHeaderMap) {
 				return printf('<option value="{{id}}" {{selectedAttribute}}>{{label}} {{currentIndicator}}</option>', {
-					id : oneHeaderMap.id,
-					selectedAttribute : oneHeaderMap.id === selectedData.header ? 'selected="selected"' : '',
-					label : oneHeaderMap.label,
-					currentIndicator : oneHeaderMap.id === selectedData.header ? '(' + translate('current') + ')' : ''
+					id: oneHeaderMap.id,
+					selectedAttribute: oneHeaderMap.id === selectedData.header ? 'selected="selected"' : '',
+					label: oneHeaderMap.label,
+					currentIndicator: oneHeaderMap.id === selectedData.header ? '(' + translate('current') + ')' : ''
 				});
 			}).join(''),
-			positionLabel : translate('position').ucfirst(),
-			disabledPosition : filteredHeaders.length === 0 ? 'disabled="disabled"' : '',
-			positionOptions : Array.from({length : matrixLengthInHeader}, function (_, index) {return index;}).map(function (builtArrayIndex) {
+			positionLabel: translate('position').ucfirst(),
+			disabledPosition: filteredHeaders.length === 0 ? 'disabled="disabled"' : '',
+			positionOptions: Array.from({ length: matrixLengthInHeader }, function (_, index) { return index; }).map(function (builtArrayIndex) {
 				return printf('<option value="{{index}}" {{selectedAttribute}}>{{indexPlus}} {{currentIndicator}}</option>', {
-					index : builtArrayIndex,
-					selectedAttribute : builtArrayIndex === indexOfData ? 'selected="selected"' : '',
-					indexPlus : builtArrayIndex + 1,
-					currentIndicator : builtArrayIndex === indexOfData && !isColumnReadOnly(selectedData.header) ? '(' + translate('current') + ')' : ''
+					index: builtArrayIndex,
+					selectedAttribute: builtArrayIndex === indexOfData ? 'selected="selected"' : '',
+					indexPlus: builtArrayIndex + 1,
+					currentIndicator: builtArrayIndex === indexOfData && !isColumnReadOnly(selectedData.header) ? '(' + translate('current') + ')' : ''
 				});
 			}).join(''),
-			buttonText : shouldCopy(selectedData.header) ? translate('copy').ucfirst() : translate('move').ucfirst()
+			buttonText: shouldCopy(selectedData.header) ? translate('copy').ucfirst() : translate('move').ucfirst()
 		}));
 
 		moveCardContext.on('change', '[name=list-map]', function () {
 			var newLength = matrixData[this.value].length;
-			moveCardContext.find('[name=position-map]').empty().html(Array.from({length : this.value === selectedData.header ? newLength : newLength + 1}, function (_, index) {
+			moveCardContext.find('[name=position-map]').empty().html(Array.from({ length: this.value === selectedData.header ? newLength : newLength + 1 }, function (_, index) {
 				return index;
 			}).map(function (builtArrayIndex) {
 				var that = this;
 				return printf('<option value="{{index}}" {{selectedAttribute}}>{{indexPlus}} {{currentIndicator}}</option>', {
-					index : builtArrayIndex,
-					selectedAttribute : that.value === selectedData.header && builtArrayIndex === indexOfData && !isColumnReadOnly(that.value) ? 'selected="selected"' : '',
-					indexPlus : builtArrayIndex + 1,
-					currentIndicator : that.value === selectedData.header && builtArrayIndex === indexOfData ? '(' + translate('current') + ')' : ''
+					index: builtArrayIndex,
+					selectedAttribute: that.value === selectedData.header && builtArrayIndex === indexOfData && !isColumnReadOnly(that.value) ? 'selected="selected"' : '',
+					indexPlus: builtArrayIndex + 1,
+					currentIndicator: that.value === selectedData.header && builtArrayIndex === indexOfData ? '(' + translate('current') + ')' : ''
 				})
 			}).join(''));
 		});
@@ -935,13 +965,14 @@
 			return typeof datumFilter.id !== 'undefined' && typeof datumFilter.header !== 'undefined';
 		}).map(function (datumMap) {
 			var defaultDadum = {
-				html : false,
-				instanceIdentity : datumMap.id,
-				editable : settings.canEditCard,
-				canMoveCard : settings.canMoveCard,
+				html: false,
+				instanceIdentity: datumMap.id,
+				editable: settings.canEditCard,
+				canMoveCard: settings.canMoveCard,
 				isClickable: true,
-				actions : [],
-				contributors : []
+				actions: [],
+				contributors: [],
+				columnReference: null
 			};
 			return $.extend(true, {}, defaultDadum, datumMap);
 		});
@@ -1020,7 +1051,7 @@
 			if (Context.find('kanban-list-wrapper[data-column="' + oneHeaderKey + '"]').length > 0) {
 				return false;
 			}
-			var oneHeader = settings.headers.find(function (oneHeaderFind) {return oneHeaderFind.id === oneHeaderKey;});
+			var oneHeader = settings.headers.find(function (oneHeaderFind) { return oneHeaderFind.id === oneHeaderKey; });
 			if (typeof oneHeader === 'undefined') {
 				return true;
 			}
@@ -1029,13 +1060,13 @@
 		});
 		if (settings.canAddColumn) {
 			var kanbanListWrapperDom = $('<div>', {
-				'class' : 'kanban-list-wrapper js-add-column',
-				id : 'kanban-wrapper-null',
-				'data-column' : null
+				'class': 'kanban-list-wrapper js-add-column',
+				id: 'kanban-wrapper-null',
+				'data-column': null
 			});
 			var addNewCardButtonDom = $('<button>', {
-				'class' : 'kanban-new-column',
-				html : '<span class="fa fa-plus"></span> ' + translate('add a new column').ucfirst()
+				'class': 'kanban-new-column',
+				html: '<span class="fa fa-plus"></span> ' + translate('add a new column').ucfirst()
 			});
 			kanbanContainerDom.append(kanbanListWrapperDom.append(addNewCardButtonDom));
 		}
@@ -1043,7 +1074,7 @@
 
 	function buildColumn(Context, header, options) {
 		var defaultOptions = {
-			createMode : false
+			createMode: false
 		}
 		if (typeof options !== 'object') {
 			options = defaultOptions;
@@ -1051,22 +1082,22 @@
 			options = $.extend(true, {}, defaultOptions, options);
 		}
 
-		var headerDefaultOption = {editable : true};
+		var headerDefaultOption = { editable: true };
 		header = $.extend(headerDefaultOption, header);
 		var settings = Context.data('settings');
 		var kanbanListWrapperDom = $('<div>', {
-			'class' : 'kanban-list-wrapper',
-			id : 'kanban-wrapper-' + header.id,
-			'data-column' : header.id
+			'class': 'kanban-list-wrapper',
+			id: 'kanban-wrapper-' + header.id,
+			'data-column': header.id
 		}).attr('draggable', settings.canMoveColumn.toString());
 		var kanbanListContentDom = $('<div>', {
-			'class' : 'kanban-list-content'
+			'class': 'kanban-list-content'
 		});
 		var kanbanListHeaderDom = $('<div>', {
-			'class' : 'kanban-list-header',
-			html : printf('<span class="column-header-text">{{label}}</span><input class="column-header-editor" value="{{label}}" type="text">{{counterHtml}}', {
-				label : header.label,
-				counterHtml : settings.showCardNumber ? '<span class="card-counter-container"> (<span data-column="' + header.id + '" class="card-counter">0</span>)</span>' : ''
+			'class': 'kanban-list-header',
+			html: printf('<span class="column-header-text">{{label}}</span><input class="column-header-editor" value="{{label}}" type="text">{{counterHtml}}', {
+				label: header.label,
+				counterHtml: settings.showCardNumber ? '<span class="card-counter-container"> (<span data-column="' + header.id + '" class="card-counter">0</span>)</span>' : ''
 			})
 		}).data('editable', header.editable);
 
@@ -1076,32 +1107,32 @@
 			'{{addCardHtml}}' +
 			'{{addColumnHtml}}' +
 			'</ul>', {
-			editHtml : settings.canEditHeader && (settings.defaultColumnMenus.length === 0 || settings.defaultColumnMenus.includes('edit_header')) ? '<li class="dropdown-item" data-target="column-rename">' + translate('rename this column').ucfirst() + '</li>' : '',
-			addCardHtml : settings.canAddCard && (settings.defaultColumnMenus.length === 0 || settings.defaultColumnMenus.includes('add_card')) ? '<li class="dropdown-item" data-target="add-card">' + translate('add a new card').ucfirst() + '</li>' : '',
-			addColumnHtml : settings.canAddColumn && (settings.defaultColumnMenus.length === 0 || settings.defaultColumnMenus.includes('add_column')) ? '<li class="dropdown-item" data-target="add-column">' + translate('add a new column').ucfirst() + '</li>' : ''
+			editHtml: settings.canEditHeader && (settings.defaultColumnMenus.length === 0 || settings.defaultColumnMenus.includes('edit_header')) ? '<li class="dropdown-item" data-target="column-rename">' + translate('rename this column').ucfirst() + '</li>' : '',
+			addCardHtml: settings.canAddCard && (settings.defaultColumnMenus.length === 0 || settings.defaultColumnMenus.includes('add_card')) ? '<li class="dropdown-item" data-target="add-card">' + translate('add a new card').ucfirst() + '</li>' : '',
+			addColumnHtml: settings.canAddColumn && (settings.defaultColumnMenus.length === 0 || settings.defaultColumnMenus.includes('add_column')) ? '<li class="dropdown-item" data-target="add-column">' + translate('add a new column').ucfirst() + '</li>' : ''
 		}));
 		$.each(header.menus, function (_, oneMenu) {
 			var menuDom = $('<li>').addClass('dropdown-item').attr('data-target', 'custom-menu').data('action', oneMenu.action).data('header', header).text(oneMenu.label);
 			dropdownCreateDom.append(menuDom);
 		});
 		var actionDropdownDom = $('<div>', {
-			'class' : 'kanban-action-dropdown',
-			html : '<button class="dropdown-trigger kanban-themed-button"><span class="fa fa-ellipsis-h"></span></button>'
+			'class': 'kanban-action-dropdown',
+			html: '<button class="dropdown-trigger kanban-themed-button"><span class="fa fa-ellipsis-h"></span></button>'
 		});
 		if (dropdownCreateDom.children().length) {
 			actionDropdownDom.append(dropdownCreateDom)
 		}
 		var listCardDom = $('<div>', {
-			'class' : 'kanban-list-cards'
+			'class': 'kanban-list-cards'
 		});
 		var composerContainerDom = $('<div>', {
-			'class' : 'kanban-composer-container'
+			'class': 'kanban-composer-container'
 		});
 		var addNewCardButtonDom = $('<button>', {
-			'class' : 'kanban-new-card-button',
-			html : '<span class="fa fa-plus"></span>' + translate('add a new card').ucfirst(),
-			data : {
-				column : header.id
+			'class': 'kanban-new-card-button',
+			html: '<span class="fa fa-plus"></span>' + translate('add a new card').ucfirst(),
+			data: {
+				column: header.id
 			}
 		});
 		kanbanListHeaderDom.append(actionDropdownDom);
@@ -1123,10 +1154,10 @@
 		var oldMatrix = context.data('matrix');
 		var newMatrix = {};
 		var newHeader = {
-			id : 'Column' + Date.now(),
-			label : translate('New column'),
-			editable : true,
-			menus : []
+			id: 'Column' + Date.now(),
+			label: translate('New column'),
+			editable: true,
+			menus: []
 		};
 		var newColumn = buildColumn(context, newHeader);
 		var settings = context.data('settings');
@@ -1153,8 +1184,8 @@
 			listCardDom.empty();
 			$.each(oneMatrixData, function (_, oneMatrixDatum) {
 				listCardDom.append(buildCard({
-					data : oneMatrixDatum,
-					settings : settings
+					data: oneMatrixDatum,
+					settings: settings
 				}));
 			});
 		});
@@ -1236,16 +1267,16 @@
 			Context.scrollLeft(scrollLeft);
 			var parentBcr = parentCardDom.get(0).getBoundingClientRect();
 			overlayDom.append(buildCardEditor({
-				data : data,
-				position : {
-					x : parentBcr.x,
-					y : parentBcr.y
+				data: data,
+				position: {
+					x: parentBcr.x,
+					y: parentBcr.y
 				},
-				size : {
-					width : parentCardDom.outerWidth()
+				size: {
+					width: parentCardDom.outerWidth()
 				},
-				column : columnId,
-				index : cardIndex
+				column: columnId,
+				index: cardIndex
 			})).addClass('active');
 			overlayDom.find('.js-add-card').data('context', Context);
 			var textAreaDom = overlayDom.find('textarea');
@@ -1288,7 +1319,7 @@
 				overlayDom.removeClass('active').empty();
 			});
 		}).on('click', '.kanban-list-card-detail:not(.dragging) .contributors-preview', function () {
-			$(this).parents('.kanban-list-card-detail').find('.contributor-container').slideToggle({duration : 100});
+			$(this).parents('.kanban-list-card-detail').find('.contributor-container').slideToggle({ duration: 100 });
 		}).on('click', '.kanban-list-card-detail:not(.dragging) .card-action', function () {
 			var self = $(this);
 			var cardDom = self.parents('.kanban-list-card-detail');
@@ -1393,11 +1424,11 @@
 				settings.headers[headerIndex].label = visibleHeaderEditor.val();
 				Context.data('settings', settings);
 				var labelDom = visibleHeaderEditor.prev('.column-header-text');
-				var values = {old : labelDom.text(), new : visibleHeaderEditor.val()};
+				var values = { old: labelDom.text(), new: visibleHeaderEditor.val() };
 				visibleHeaderEditor.css('display', '');
 				labelDom.text(visibleHeaderEditor.val()).css('display', '');
 				if (typeof settings.onHeaderChange === 'function') {
-					settings.onHeaderChange({column : column, values : values});
+					settings.onHeaderChange({ column: column, values: values });
 				}
 			}
 		}).on('keydown', '.card-composer', function (event) {
@@ -1424,27 +1455,27 @@
 			dragstartColumn = true;
 
 			columnSubstitute.css({
-				minWidth : outerWidth - 4,
-				width : outerWidth - 4,
-				height : outerHeight - 4
+				minWidth: outerWidth - 4,
+				width: outerWidth - 4,
+				height: outerHeight - 4
 			});
 			self.before(columnSubstitute);
 			self.addClass('dragging')
-			    .css({
-				    position : 'fixed',
-				    top : bcr.y,
-				    left : bcr.x
-			    })
-			    .width(width)
-			    .height(height)
-			    .detach();
+				.css({
+					position: 'fixed',
+					top: bcr.y,
+					left: bcr.x
+				})
+				.width(width)
+				.height(height)
+				.detach();
 			Context.append(self);
 			event.preventDefault();
 		}).on('mousemove', function (event) {
 			var draggingElement = document.querySelector('.kanban-list-wrapper.dragging:not(.js-add-column)');
 			var coordinates = {
-				x : event.clientX,
-				y : event.clientY
+				x: event.clientX,
+				y: event.clientY
 			};
 			if (dragstartColumn && draggingElement !== null) {
 				moveColumn(coordinates, draggingElement);
@@ -1456,20 +1487,20 @@
 				var draggingElement = $('.kanban-list-wrapper.dragging:not(.js-add-column)');
 				var bcr = columnSubstitute.get(0).getBoundingClientRect()
 				draggingElement.animate({
-					top : bcr.y,
-					left : bcr.x
+					top: bcr.y,
+					left: bcr.x
 				}, {
-					easing : 'easeOutQuad',
-					duration : 250,
-					complete : function () {
+					easing: 'easeOutQuad',
+					duration: 250,
+					complete: function () {
 						draggingElement
 							.removeClass('dragging')
 							.css({
-								position : '',
-								top : '',
-								left : '',
-								width : '',
-								height : ''
+								position: '',
+								top: '',
+								left: '',
+								width: '',
+								height: ''
 							});
 						columnSubstitute
 							.after(draggingElement)
@@ -1485,8 +1516,8 @@
 		});
 		$(document).on('mousemove', function (event) {
 			var coordinates = {
-				x : event.clientX,
-				y : event.clientY
+				x: event.clientX,
+				y: event.clientY
 			};
 			if (dragstartColumn && !isPointerInsideOf(Context.get(0), coordinates)) {
 				Context.trigger('mouseup');
@@ -1506,8 +1537,8 @@
 		function moveColumn(coordinates, element) {
 			var self = $(element);
 			self.css({
-				left : coordinates.x - diffX,
-				top : coordinates.y - diffY
+				left: coordinates.x - diffX,
+				top: coordinates.y - diffY
 			});
 			checkColumnSubstitutePosition(coordinates);
 		}
@@ -1536,7 +1567,7 @@
 
 		var kanbanOverlayDom = $('.kanban-overlay');
 		if (kanbanOverlayDom.length === 0) {
-			kanbanOverlayDom = $('<div>', {'class' : 'kanban-overlay'});
+			kanbanOverlayDom = $('<div>', { 'class': 'kanban-overlay' });
 			$(document.body).prepend(kanbanOverlayDom);
 		}
 
@@ -1569,7 +1600,7 @@
 		var settings = Context.data('settings');
 		Context.empty().html('');
 		Context.append($('<div>', {
-			'class' : 'kanban-container'
+			'class': 'kanban-container'
 		}));
 		if (settings.language === 'en') {
 			loadKanban(Context);
@@ -1588,22 +1619,23 @@
 		Self.data('filter', typeof Self.data('filter') === 'object' ? Self.data('filter') : {});
 		if (typeof options === 'object' && !Self.hasClass('kanban-initialized')) {
 			var defaultOptions = {
-				headers : [],
-				data : [],
-				defaultColumnMenus : [],
-				canEditHeader : false,
-				prependOnly : false,
-				canEditCard : true,
-				canAddCard : true,
-				canDuplicateCard : false,
-				canMoveCard : true,
-				canMoveColumn : false,
-				canAddColumn : false,
-				showContributors : false,
-				actionConditionEnabled : false,
-				copyWhenDragFrom : [],
-				readonlyHeaders : [],
-				language : 'en'
+				headers: [],
+				data: [],
+				defaultColumnMenus: [],
+				canEditHeader: false,
+				prependOnly: false,
+				canEditCard: true,
+				canAddCard: true,
+				canDuplicateCard: false,
+				canMoveCard: true,
+				canMoveColumn: false,
+				canAddColumn: false,
+				showContributors: false,
+				showCardNumber: false,
+				actionConditionEnabled: false,
+				copyWhenDragFrom: [],
+				readonlyHeaders: [],
+				language: 'en'
 			};
 			settings = $.extend(true, {}, defaultOptions, options);
 			Self.data('settings', settings);
@@ -1638,7 +1670,7 @@
 						matrixData = filterMatrixBy(matrixData, filter);
 						var oldCardDom = Self.find('.kanban-list-card-detail[data-id="' + argument.id + '"]');
 						if (oldCardDom.length) {
-							oldCardDom.after(buildCard({data : data, settings : settings}));
+							oldCardDom.after(buildCard({ data: data, settings: settings }));
 							oldCardDom.remove();
 						}
 						bindDragAndDropEvents(Self, _dragAndDropManager);
@@ -1660,8 +1692,8 @@
 						var index = dataMatrixIndex(datumLoop, matrix);
 						if (index >= 0) {
 							Self.find('#kanban-wrapper-' + datumLoop.header + ' .kanban-list-cards').append(buildCard({
-								data : matrix[datumLoop.header][index],
-								settings : settings
+								data: matrix[datumLoop.header][index],
+								settings: settings
 							}));
 						}
 					});
@@ -1723,7 +1755,7 @@
 							}
 						}
 						data = matrix[column][index];
-						createCardDom = buildCard({data : data, settings : settings});
+						createCardDom = buildCard({ data: data, settings: settings });
 						createCardDom.hide();
 					}
 					moveCard(Self, createCardDom, argument.target, argument.position);
@@ -1745,4 +1777,4 @@
 		return this;
 	};
 })
-(jQuery, window);
+	(jQuery, window);
