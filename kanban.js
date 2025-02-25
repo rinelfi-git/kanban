@@ -1,4 +1,5 @@
 (function ($, W) {
+	let KANBAN;
 	String.prototype.ucfirst = function () {
 		return this.charAt(0).toUpperCase() + this.slice(1);
 	};
@@ -10,12 +11,11 @@
 	var _currentLanguage;
 	var _dragAndDropManager = {
 		prependOnly: false,
-		onCardDrop: function (self, Context, notify) {
+		onCardDrop: function (self,  notify) {
 			var i;
-			if (typeof notify !== 'boolean') {
+			if (typeof notify !== 'boolean')
 				notify = true;
-			}
-			var settings = Context.data('settings');
+			var settings = KANBAN.data('settings');
 			var oldColumn = self.data('column');
 			var newColumn = self.parents('.kanban-list-wrapper').data('column');
 			var data = self.data('datum');
@@ -25,7 +25,7 @@
 			self.find('.kanban-list-card-switch').attr('data-column', newColumn).data('column', newColumn);
 			var columnKanbanDomList = $('.kanban-list-card-detail[data-column="' + newColumn + '"]');
 			var newIndex = columnKanbanDomList.index(self);
-			var newDataMatrix = $.extend({}, Context.data('matrix'));
+			var newDataMatrix = $.extend({}, KANBAN.data('matrix'));
 			var dataIndex = newDataMatrix[oldColumn].findIndex(function (datum) {
 				return datum.id === data.id;
 			});
@@ -55,12 +55,12 @@
 			}
 			newDataMatrix[oldColumn] = oldDataList;
 			newDataMatrix[newColumn] = newDataList;
-			var filter = Context.data('filter');
-			Context.data('matrix', newDataMatrix);
+			var filter = KANBAN.data('filter');
+			KANBAN.data('matrix', newDataMatrix);
 			newDataMatrix = filterMatrixBy(newDataMatrix, filter);
 
-			Context.find('.card-counter[data-column="' + oldColumn + '"]').text(newDataMatrix[oldColumn].length);
-			Context.find('.card-counter[data-column="' + newColumn + '"]').text(newDataMatrix[newColumn].length);
+			KANBAN.find('.card-counter[data-column="' + oldColumn + '"]').text(newDataMatrix[oldColumn].length);
+			KANBAN.find('.card-counter[data-column="' + newColumn + '"]').text(newDataMatrix[newColumn].length);
 			if (typeof settings.onCardDrop === 'function' && notify) {
 				var columnInfo = {
 					data: data,
@@ -72,16 +72,16 @@
 					origin: oldDataList,
 					target: newDataList
 				};
-				settings.onCardDrop.call(Context, columnInfo, dataInfo);
+				settings.onCardDrop.call(KANBAN, columnInfo, dataInfo);
 			}
 		},
-		onColumnDrop: function (element, Context, notify) {
+		onColumnDrop: function (element, notify) {
 			if (typeof notify !== 'boolean') {
 				notify = true;
 			}
-			var settings = Context.data('settings');
-			var matrix = Context.data('matrix');
-			var position = Context.find('.kanban-list-wrapper:not(.js-add-column)').index(element);
+			var settings = KANBAN.data('settings');
+			var matrix = KANBAN.data('matrix');
+			var position = KANBAN.find('.kanban-list-wrapper:not(.js-add-column)').index(element);
 			var matrixIndexes = Object.keys(matrix);
 			var columnName = element.data('column');
 			var oldPosition = matrixIndexes.indexOf(columnName);
@@ -92,7 +92,7 @@
 				newMatrix[matrixIndex] = matrix[matrixIndex];
 			});
 			matrix = $.extend({}, newMatrix);
-			Context.data('matrix', matrix);
+			KANBAN.data('matrix', matrix);
 			if (typeof settings.onColumnDrop === 'function' && notify) {
 				settings.onColumnDrop({
 					column: columnName,
@@ -217,16 +217,13 @@
 							data: newData,
 							settings: settings
 						}));
-						Context.find('.card-counter[data-column="' + column + '"]').text(filteredMatrix[column].length);
+						update_action_count.call(Context, column, filter);
 					}
-
-					if (typeof settings.onCardInsert === 'function') {
+					if (typeof settings.onCardInsert === 'function')
 						settings.onCardInsert(newData);
-					}
 					bindDragAndDropEvents(Context, _dragAndDropManager);
-					if (typeof settings.onRenderDone === 'function') {
+					if (typeof settings.onRenderDone === 'function')
 						settings.onRenderDone();
-					}
 					break;
 			}
 			$('.js-cancel').trigger('click');
@@ -268,12 +265,18 @@
 			temporaryMatrix = {};
 		}
 		if (typeof criterias.attributes === 'object') {
-			var keyList = Object.keys(criterias.attributes);
+			var attr = criterias.attributes;
+			var keyList = Object.keys(attr);
 			if (keyList.length) {
 				for (column in matrix) {
 					temporaryMatrix[column] = matrix[column].filter(function (data) {
-						return keyList.filter(function (filterKey) {
-							return typeof data[filterKey] !== 'undefined' && W.JSON.stringify(data[filterKey]) === W.JSON.stringify(criterias.attributes[filterKey]);
+						return keyList.filter(function (key) {
+							if (typeof data[key] === "undefined")
+								return (0);
+							if (Array.isArray(data[key]) && Array.isArray(attr[key]))
+								return (attr[key].every(every => (data[key].includes(every))));
+							else
+								return (W.JSON.stringify(data[key]) === W.JSON.stringify(attr[key]));
 						}).length > 0;
 					});
 				}
@@ -317,9 +320,8 @@
 	}
 
 	function translate(keyword) {
-		if (_dictionary[_currentLanguage] && _dictionary[_currentLanguage][keyword]) {
+		if (_dictionary[_currentLanguage] && _dictionary[_currentLanguage][keyword])
 			return _dictionary[_currentLanguage][keyword];
-		}
 		return keyword;
 	}
 
@@ -397,38 +399,72 @@
 		return filteredMatrix[column][index];
 	}
 
-	function buildContributorsDropdown(contributorsList) {
-		var html = printf('<ul class="contributor-list">{{contributorList}}</ul>', {
-			contributorList: contributorsList.map(function (oneContributor) {
-				var dataList = typeof oneContributor.data === 'object' ? oneContributor.data : {};
-				var dataString = '';
-				$.each(dataList, function (key, value) {
-					dataString += printf('data-{{replacedKey}}="{{value}}" ', {
-						replacedKey: key.replace(/A-Z/g, function (match) {
-							return '-' + match.toLowerCase();
-						}),
-						value: value.toString().replace(/"/g, '&quot;')
-					});
-				});
-				if (dataString.length > 0) {
-					dataString = dataString.substring(0, dataString.length - 1);
-				}
-				return printf('' +
-					'<li class="contributor-info" {{dataString}}>' +
-					'   <div class="contributor-image">' +
-					'       <img src="{{image}}" alt="{{name}}" />' +
-					'   </div>' +
-					'   <p class="contributor-name">{{name}}</p>' +
-					'</li>', {
-					dataString: dataString,
-					image: oneContributor.image,
-					name: oneContributor.name
-				});
-			}).join('')
+	function buildContributorsDropdown(settings, contributorsList) {
+		const card_dom = this;
+		const datum = card_dom.data("datum");
+		const list_dom = $("<ul>", {
+			class: "contributor-list"
 		});
-		return $('<div>')
-			.addClass('contributor-container')
-			.html(html);
+		const container_dom = $('<div>')
+			.addClass('contributor-container');
+		$.each(contributorsList, function (_,contributor) {
+			var dataList = typeof contributor.data === 'object' ? contributor.data : {};
+				const data = {
+					"data-index": _,
+				};
+				$.each(dataList, function (key, value) {
+					data[`data-${key}`] = value;
+				});
+				function handle_remove_contributor(e) {
+					e.stopPropagation();
+					const self = $(this);
+					const to_delete = $.extend({}, contributor);
+					const matrix = KANBAN.data("matrix");
+
+					datum.contributors.splice(self.data("index"), 1);
+					card_dom.find(".contributors-preview")
+						.html(`${datum.contributors.length} <span class="fa fa-users"></span>`);
+					container_dom.remove();
+					card_dom.append(buildContributorsDropdown.call(card_dom, settings, datum.contributors));
+					matrix[datum.header] = matrix[datum.header].map(vector => {
+						if (vector.instanceIdentity !== datum.instanceIdentity)
+							return vector;
+						return datum;
+					});
+					KANBAN.data("matrix", matrix);
+					if (typeof settings.onContributorRemove === "function")
+						settings.onContributorRemove(to_delete);
+				}
+				const contributor_info =  $("<div>", {
+					class: "contributor-info",
+					data: {
+						card: card_dom,
+						settings: settings,
+					},
+					...data
+				})
+				.append(`
+					<div class="contributor-image">
+						<img src="${contributor.image}" alt="${contributor.name}" />
+					</div>
+				`)
+				.append(`<p class="contributor-name">${contributor.name}</p>`)
+				.append(
+					$("<p>", {
+						class: "contributor-remove",
+						html: `<i class="fa fa-times"></i>`
+					}).on("click", handle_remove_contributor)
+				)
+				.on("click", function() {
+					const self = $(this);
+
+					if (typeof settings.onContributorClick === "function")
+						settings.onContributorClick(self.data());
+				});
+			list_dom.append(contributor_info);
+		});
+		container_dom.append(list_dom);
+		return container_dom;
 	}
 
 	function buildCard(options) {
@@ -439,17 +475,9 @@
 			.attr('data-id', data.id)
 			.addClass('kanban-list-card-detail')
 			.data('datum', data);
-
-		if (data.columnReference) {
-			listCardDetailContainer.addClass('column-referer');
-		}
-
 		var listCardDetailText = $('<span>', {
 			'class': 'kanban-list-card-title'
 		});
-
-		if (data.html) { listCardDetailText.html(data.title); } else { listCardDetailText.text(data.title); }
-
 		var listCardDetailSwitch = $('<button>', {
 			'class': 'kanban-list-card-switch',
 			html: '<span class="fa fa-arrows-h"></span>',
@@ -474,10 +502,17 @@
 		var contributorDom = $('<button>')
 			.addClass('contributors-preview')
 			.html(data.contributors.length + ' <span class="fa fa-users"></span>');
-		if (settings.canEditCard && data.editable) { cardActionDom.append(listCardDetailEdit); }
-		if (settings.canDuplicateCard) {
+
+		if (data.columnReference)
+			listCardDetailContainer.addClass('column-referer');
+		if (data.html)
+			listCardDetailText.html(data.title);
+		else 
+			listCardDetailText.text(data.title);
+		if (settings.canEditCard && data.editable)
+			cardActionDom.append(listCardDetailEdit);
+		if (settings.canDuplicateCard)
 			cardActionDom.append(cardDuplicate);
-		}
 		if (data.actions.length) {
 			$.each(data.actions, function (_, oneAction) {
 				var html = '';
@@ -501,16 +536,23 @@
 					'class': 'card-action',
 					html: html
 				});
-				if (typeof oneAction.className !== 'undefined' && oneAction.className.length > 0) {
-					actionDom.addClass('custom').addClass(oneAction.className);
-				}
+				if (typeof oneAction.className !== 'undefined' && oneAction.className.length > 0)
+					actionDom
+						.addClass('custom')
+						.addClass(oneAction.className);
 				// Spécificité communecter
 				if (oneAction.bstooltip) {
 					actionDom
-						.attr('data-toggle', 'tooltip')
+						.attr('title', oneAction.bstooltip.text.replace(/"/g, '&quot;'))
 						.attr('data-placement', oneAction.bstooltip.position)
-						.attr('data-original-title', oneAction.bstooltip.text.replace(/"/g, '&quot;'))
-						.addClass('tooltips');
+					if (typeof jQuery.fn.tooltip === "function")
+						actionDom.tooltip({ container: 'body' });
+					if (typeof oneAction.action === 'string')
+						actionDom.attr('data-action', oneAction.action);
+					if (typeof jQuery.fn.tooltip === "function")
+						actionDom.on('click', function () {
+							actionDom.tooltip('hide');
+						});
 				}
 				// Spécificité communecter
 				cardFooterDom.append(actionDom);
@@ -519,21 +561,17 @@
 				}
 			});
 		}
-		if (settings.showContributors) {
+		if (settings.showContributors)
 			cardFooterDom.append(contributorDom);
-		}
-		if (settings.canMoveCard && data.canMoveCard) {
+		if (settings.canMoveCard && data.canMoveCard)
 			cardActionDom.append(listCardDetailSwitch);
-		}
 		listCardDetailContainer
 			.append(listCardDetailText)
 			.append(cardActionDom);
-		if (cardFooterDom.children().length) {
+		if (cardFooterDom.children().length)
 			listCardDetailContainer.append(cardFooterDom);
-		}
-		if (data.contributors.length) {
-			listCardDetailContainer.append(buildContributorsDropdown(data.contributors))
-		}
+		if (data.contributors.length)
+			listCardDetailContainer.append(buildContributorsDropdown.call(listCardDetailContainer, settings, data.contributors))
 		return listCardDetailContainer;
 	}
 
@@ -627,6 +665,19 @@
 			bindDragAndDropEvents(context, _dragAndDropManager);
 		}
 		return createdCard;
+	}
+
+	function update_action_count(column, filter) {
+		var matrix, self = this;
+		column = typeof column === 'undefined' ? null : column;
+		filter = typeof filter === 'object' && filter ? filter : {};
+		matrix = filterMatrixBy(this.data('matrix'), filter);
+		if (!column)
+			$.each(matrix, function (col, vect) {
+				self.find('.card-counter[data-column="' + col + '"]').text(vect.length);
+			});
+		else
+			self.find('.card-counter[data-column="' + column + '"]').text(matrix[column].length);
 	}
 
 	function bindDragAndDropEvents(Context, events) {
@@ -781,10 +832,9 @@
 				self.removeClass('dragging').css({ position: '', top: '', left: '', width: '', height: '', transform: '' });
 				self.hide(250, function () {
 					var referencerData = cardColumnReferencer.data('datum');
-					console.log('Moving', self, referencerData.columnReference)
 					moveCard(Context, self, referencerData.columnReference, cardColumnReferencer.parents('.kanban-list-cards').children().length);
 					self.show();
-					_dragAndDropManager.onCardDrop(self, Context);
+					_dragAndDropManager.onCardDrop(self);
 					initValues();
 				});
 			} else {
@@ -814,7 +864,7 @@
 		}
 
 		function checkDragOver(position) {
-			var settings = Context.data('settings');
+			var settings = settings = Context.data('settings');
 			Context.find('.kanban-list-content').each(function () {
 				if (!isPointerInsideOf(this, position)) {
 					return true;
@@ -978,33 +1028,30 @@
 		});
 		$.each(compiledDataList, function (_, dataLine) {
 			var matrix = $.extend({}, Context.data('matrix'));
-			if (typeof matrix[dataLine.header] === 'undefined' || !Array.isArray(matrix[dataLine.header])) {
+			var index;
+			if (typeof matrix[dataLine.header] === 'undefined' || !Array.isArray(matrix[dataLine.header]))
 				matrix[dataLine.header] = [];
-			}
-			if (matrix[dataLine.header].findIndex(function (datum) {
+			index = matrix[dataLine.header].findIndex(function (datum) {
 				return datum.id === dataLine.id;
-			}) >= 0) {
-				return true;
-			}
+			});
+			if (index >= 0)
+				return (true);
 			if (typeof dataLine.position === 'number') {
-				if (dataLine.position >= matrix[dataLine.header].length || dataLine.position < 0) {
+				if (dataLine.position >= matrix[dataLine.header].length || dataLine.position < 0)
 					matrix[dataLine.header].push(dataLine);
-				} else {
+				else
 					matrix[dataLine.header].splice(dataLine.position, 0, dataLine);
-				}
 			} else {
 				var last = matrix[dataLine.header].pop();
-				if (typeof last === 'undefined') {
+				if (typeof last === 'undefined')
 					matrix[dataLine.header].push(dataLine);
-				} else if (typeof last.position === 'number') {
-					if (matrix[dataLine.header].length < last.position) {
+				else if (typeof last.position === 'number') {
+					if (matrix[dataLine.header].length < last.position)
 						matrix[dataLine.header].push(dataLine, last);
-					} else {
+					else
 						matrix[dataLine.header].push(last, dataLine);
-					}
-				} else {
+				} else
 					matrix[dataLine.header].push(last, dataLine);
-				}
 			}
 			Context.data('matrix', matrix);
 		});
@@ -1012,33 +1059,40 @@
 
 	function deleteData(Context, coordinates) {
 		var matrix = $.extend({}, Context.data('matrix'));
+		var column;
 		var id = null, index;
-		if (typeof coordinates === 'object' && typeof coordinates.index !== 'undefined' && typeof matrix[coordinates.column] !== 'undefined' && typeof matrix[coordinates.column][coordinates.index] !== 'undefined') {
-			id = matrix[coordinates.column][coordinates.index].id;
-			matrix[coordinates.column].splice(coordinates.index, 1);
-		} else if (typeof coordinates === 'object' && typeof coordinates.id !== 'undefined' && typeof coordinates.column !== 'undefined') {
-			index = matrix[coordinates.column].findIndex(function (data) {
-				return data.id === coordinates.id;
-			});
-			if (typeof matrix[coordinates.column] !== 'undefined' && typeof matrix[coordinates.column][index] !== 'undefined') {
-				id = matrix[coordinates.column][index].id;
-				matrix[coordinates.column].splice(index, 1);
-			}
-		} else {
-			coordinates = typeof coordinates === 'object' && coordinates.id ? coordinates.id : coordinates;
-			for (var column in matrix) {
+		if (typeof coordinates === 'object' && coordinates) {
+			if (typeof coordinates.column !== 'undefined')
+				column = coordinates.column;
+			if (typeof coordinates.index !== 'undefined')
+				index = coordinates.index;
+			if (['string', 'number'].includes(typeof coordinates.id))
+				id = coordinates.id;
+		} else if (['string', 'number'].includes(typeof coordinates))
+			id = coordinates
+		if (typeof column !== 'undefined' && typeof matrix[column] !== 'undefined') {
+			if (typeof index !== 'undefined' && typeof matrix[column][index] !== 'undefined')
+				id = matrix[column][index].id;
+			else if (id) {
 				index = matrix[column].findIndex(function (data) {
-					return data.id === coordinates;
+					return (data.id === id);
+				});
+			}
+			if (typeof index === 'number' && index >= 0)
+				matrix[column].splice(index, 1);
+		} else if (id) {
+			$.each(matrix, function (col, data) {
+				index = data.findIndex(function (line) {
+					return (line.id === id);
 				});
 				if (index >= 0) {
-					id = matrix[column][index].id;
-					matrix[column].splice(index, 1);
-					break;
+					matrix[col].splice(index, 1);
+					return (false);
 				}
-			}
+			});
 		}
 		Context.data('matrix', matrix);
-		return id;
+		return (id);
 	}
 
 	function buildColumns(Context) {
@@ -1052,9 +1106,8 @@
 				return false;
 			}
 			var oneHeader = settings.headers.find(function (oneHeaderFind) { return oneHeaderFind.id === oneHeaderKey; });
-			if (typeof oneHeader === 'undefined') {
-				return true;
-			}
+			if (typeof oneHeader === 'undefined')
+				return (true);
 			oneHeader.menus = typeof oneHeader.menus !== 'object' || !Array.isArray(oneHeader.menus) ? [] : oneHeader.menus;
 			kanbanContainerDom.append(buildColumn(Context, oneHeader));
 		});
@@ -1075,14 +1128,15 @@
 	function buildColumn(Context, header, options) {
 		var defaultOptions = {
 			createMode: false
-		}
-		if (typeof options !== 'object') {
+		};
+		if (typeof options !== 'object')
 			options = defaultOptions;
-		} else {
+		else
 			options = $.extend(true, {}, defaultOptions, options);
-		}
-
-		var headerDefaultOption = { editable: true };
+		var headerDefaultOption = {
+			editable: true,
+			classNameList: []
+		};
 		header = $.extend(headerDefaultOption, header);
 		var settings = Context.data('settings');
 		var kanbanListWrapperDom = $('<div>', {
@@ -1092,6 +1146,9 @@
 		}).attr('draggable', settings.canMoveColumn.toString());
 		var kanbanListContentDom = $('<div>', {
 			'class': 'kanban-list-content'
+		});
+		$.each(header.classNameList, function (i, classname) {
+			kanbanListContentDom.addClass(classname);
 		});
 		var kanbanListHeaderDom = $('<div>', {
 			'class': 'kanban-list-header',
@@ -1143,22 +1200,41 @@
 			.append(kanbanListHeaderDom)
 			.append(listCardDom)
 			.append(composerContainerDom);
-		if (options.createMode) {
+		if (options.createMode)
 			kanbanListHeaderDom.find('.column-header-text').trigger('click');
-		}
 		return kanbanListWrapperDom.append(kanbanListContentDom);
 	}
 
-	function createColumnAfter(wrapperDom) {
+	function createColumnAfter(wrapperDom, name) {
 		var context = wrapperDom.parents('.kanban-initialized');
 		var oldMatrix = context.data('matrix');
 		var newMatrix = {};
 		var newHeader = {
 			id: 'Column' + Date.now(),
-			label: translate('New column'),
+			label: name ? name : translate('New column'),
 			editable: true,
 			menus: []
 		};
+		var newColumn = buildColumn(context, newHeader);
+		var settings = context.data('settings');
+		var wrapperIndex = context.find('.kanban-list-wrapper').index(wrapperDom);
+		settings.headers.splice(wrapperIndex + 1, 0, newHeader);
+		$.each(settings.headers, function (_, header) {
+			newMatrix[header.id] = typeof oldMatrix[header.id] === 'undefined' ? [] : oldMatrix[header.id];
+		});
+		context.data('settings', settings);
+		context.data('matrix', newMatrix);
+		wrapperDom.after(newColumn);
+		newColumn.find('.column-header-text').trigger('click');
+		if (typeof settings.onColumnInsert === 'function') {
+			settings.onColumnInsert.call(context, newHeader);
+		}
+	}
+
+	function addColumnAfter(wrapperDom, newHeader){
+		var context = wrapperDom.parents('.kanban-initialized');
+		var oldMatrix = context.data('matrix');
+		var newMatrix = {};
 		var newColumn = buildColumn(context, newHeader);
 		var settings = context.data('settings');
 		var wrapperIndex = context.find('.kanban-list-wrapper').index(wrapperDom);
@@ -1228,12 +1304,10 @@
 			if (excludeElementsList.every(notElement) && $('.card-composer').length === 0) {
 				var wrapperDom = self.parents('.kanban-list-wrapper');
 				var column = wrapperDom.data('column');
-				if (typeof settings.onInsertCardAction === 'function') {
+				if (typeof settings.onInsertCardAction === 'function')
 					settings.onInsertCardAction(column);
-				}
-				if (!settings.canAddCard) {
-					return true;
-				}
+				if (!settings.canAddCard)
+					return (true);
 				wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(Context, column)).scrollTop(0);
 				wrapperDom.find('.js-card-title').focus();
 				wrapperDom.find('.js-add-card').data('context', Context);
@@ -1246,9 +1320,8 @@
 			}
 			var self = $(this);
 			var data = self.data('datum');
-			if (typeof settings.onCardClick === 'function' && data.isClickable) {
+			if (typeof settings.onCardClick === 'function' && data.isClickable)
 				settings.onCardClick.call(this, data);
-			}
 		}).on('click', '.kanban-list-card-detail:not(.dragging) .kanban-list-card-edit', function (event) {
 			event.stopPropagation();
 			var self = $(this);
@@ -1315,7 +1388,7 @@
 					cardDom = duplicateCard(cardDom)
 				}
 				moveCard(Context, cardDom, targetColumn, targetLine);
-				_dragAndDropManager.onCardDrop(cardDom, Context);
+				_dragAndDropManager.onCardDrop(cardDom);
 				overlayDom.removeClass('active').empty();
 			});
 		}).on('click', '.kanban-list-card-detail:not(.dragging) .contributors-preview', function () {
@@ -1324,9 +1397,10 @@
 			var self = $(this);
 			var cardDom = self.parents('.kanban-list-card-detail');
 			var data = cardDom.data('datum');
-			if (typeof self.data('action') === 'string' && typeof settings[self.data('action')] === 'function') {
+			if (typeof jQuery.fn.tooltip === "function")
+				self.tooltip('hide');
+			if (typeof self.data('action') === 'string' && typeof settings[self.data('action')] === 'function')
 				settings[self.data('action')](data, cardDom);
-			}
 		}).on('click', '.kanban-list-card-detail:not(.dragging) .card-duplicate', function () {
 			var self = $(this);
 			duplicateCard(self.parents('.kanban-list-card-detail'));
@@ -1505,9 +1579,8 @@
 						columnSubstitute
 							.after(draggingElement)
 							.detach();
-						if (typeof _dragAndDropManager.onColumnDrop === 'function') {
-							_dragAndDropManager.onColumnDrop(draggingElement, Context);
-						}
+						if (typeof _dragAndDropManager.onColumnDrop === 'function')
+							_dragAndDropManager.onColumnDrop(draggingElement);
 						bindDragAndDropEvents(Context, _dragAndDropManager);
 					}
 				});
@@ -1613,11 +1686,12 @@
 
 	$.fn.kanban = function (options, argument) {
 		options = typeof options === 'undefined' ? {} : options;
-		var Self = this, settings;
-		Self.data('matrix', typeof Self.data('matrix') === 'object' ? Self.data('matrix') : {});
-		Self.data('settings', typeof Self.data('settings') === 'object' ? Self.data('settings') : {});
-		Self.data('filter', typeof Self.data('filter') === 'object' ? Self.data('filter') : {});
-		if (typeof options === 'object' && !Self.hasClass('kanban-initialized')) {
+		KANBAN = this;
+		var settings;
+		KANBAN.data('matrix', typeof KANBAN.data('matrix') === 'object' ? KANBAN.data('matrix') : {});
+		KANBAN.data('settings', typeof KANBAN.data('settings') === 'object' ? KANBAN.data('settings') : {});
+		KANBAN.data('filter', typeof KANBAN.data('filter') === 'object' ? KANBAN.data('filter') : {});
+		if (typeof options === 'object' && !KANBAN.hasClass('kanban-initialized')) {
 			var defaultOptions = {
 				headers: [],
 				data: [],
@@ -1638,15 +1712,15 @@
 				language: 'en'
 			};
 			settings = $.extend(true, {}, defaultOptions, options);
-			Self.data('settings', settings);
-			Self.data('matrix', {});
-			initKanban(Self);
+			KANBAN.data('settings', settings);
+			KANBAN.data('matrix', {});
+			initKanban(KANBAN);
 		} else if (typeof options === 'string' && (typeof argument !== 'undefined' || ['destroy'].includes(options))) {
-			settings = Self.data('settings');
+			settings = KANBAN.data('settings');
 			var index, filter, matrix, column, data, matrixData, createCardDom;
 			switch (options) {
 				case 'setData':
-					matrixData = $.extend({}, Self.data('matrix'));
+					matrixData = $.extend({}, KANBAN.data('matrix'));
 					data = $.extend({}, argument.data);
 					column = argument.column ? argument.column : '';
 					if (argument.column && typeof matrixData[argument.column] !== 'undefined') {
@@ -1665,76 +1739,100 @@
 					}
 					if (typeof matrixData[column][index] !== 'undefined') {
 						matrixData[column][index] = data;
-						Self.data('matrix', matrixData);
-						filter = Self.data('filter');
+						$.each(data.actions, function (i, action) {
+							if (typeof action.bstooltip !== 'undefined' && typeof action.action === 'string') {
+								var action_dom = KANBAN.find('.kanban-list-card-detail[data-id="' + action.id + '"] .card-action[data-action="' + action.action + '"]');
+								$('.tooltip.in').remove();
+								action_dom.attr('data-original-title', action.bstooltip.text.replace(/"/g, '&quot;'));
+								if (typeof jQuery.fn.tooltip === "function")
+									action_dom.tooltip('_fixTitle')
+										.tooltip('show');
+							}
+						});
+						KANBAN.data('matrix', matrixData);
+						filter = KANBAN.data('filter');
 						matrixData = filterMatrixBy(matrixData, filter);
-						var oldCardDom = Self.find('.kanban-list-card-detail[data-id="' + argument.id + '"]');
+						var oldCardDom = KANBAN.find('.kanban-list-card-detail[data-id="' + argument.id + '"]');
 						if (oldCardDom.length) {
 							oldCardDom.after(buildCard({ data: data, settings: settings }));
 							oldCardDom.remove();
 						}
 						bindDragAndDropEvents(Self, _dragAndDropManager);
-						if (typeof settings.onRenderDone === 'function') {
+						if (typeof settings.onRenderDone === 'function')
 							settings.onRenderDone();
-						}
 					}
 					break;
 				case 'addData':
 					var dataToAdd = Array.isArray(argument) ? argument : [argument];
 					addData(Self, dataToAdd);
-					matrix = Self.data('matrix');
-					filter = Self.data('filter');
+					matrix = KANBAN.data('matrix');
+					filter = KANBAN.data('filter');
 					matrix = filterMatrixBy(matrix, filter);
 					dataToAdd.forEach(function (datumLoop) {
-						if (typeof datumLoop.id === 'undefined' || typeof datumLoop.header === 'undefined') {
-							return true;
-						}
+						if (typeof datumLoop.id === 'undefined' || typeof datumLoop.header === 'undefined')
+							return;
 						var index = dataMatrixIndex(datumLoop, matrix);
 						if (index >= 0) {
-							Self.find('#kanban-wrapper-' + datumLoop.header + ' .kanban-list-cards').append(buildCard({
+							KANBAN.find('#kanban-wrapper-' + datumLoop.header + ' .kanban-list-cards').append(buildCard({
 								data: matrix[datumLoop.header][index],
 								settings: settings
 							}));
 						}
 					});
+					update_action_count.call(Self);
 					bindDragAndDropEvents(Self, _dragAndDropManager);
-					if (typeof settings.onRenderDone === 'function') {
+					if (typeof settings.onRenderDone === 'function')
 						settings.onRenderDone();
-					}
 					break;
 				case 'deleteData':
 					var deletedId = deleteData(Self, argument);
-					matrix = Self.data('matrix');
-					filter = Self.data('filter');
+					matrix = KANBAN.data('matrix');
+					filter = KANBAN.data('filter');
 					matrix = filterMatrixBy(matrix, filter);
 					if (deletedId !== null) {
-						createCardDom = Self.find('.kanban-list-card-detail[data-id=' + deletedId + ']');
+						createCardDom = KANBAN.find('.kanban-list-card-detail[data-id=' + deletedId + ']');
+						if (typeof jQuery.fn.tooltip === "function")
+							createCardDom.find('.card-action').tooltip('destroy');
 						createCardDom.remove();
+						if (typeof argument === 'object' && argument && argument.column)
+							update_action_count.call(Self, argument.column, filter);
+						else
+							update_action_count.call(Self, null, filter);
 						bindDragAndDropEvents(Self, _dragAndDropManager);
-						if (typeof settings.onRenderDone === 'function') {
+						if (typeof settings.onRenderDone === 'function')
 							settings.onRenderDone();
-						}
 					}
 					break;
 				case 'getData':
-					matrixData = $.extend({}, Self.data('matrix'));
-					if (argument.column && argument.index) {
-						return matrixData[argument.column][argument.index];
-					} else {
-						for (column in matrixData) {
-							var foundData = matrixData[column].find(function (datum) {
-								return datum.id === argument.id;
+					matrixData = $.extend({}, KANBAN.data('matrix'));
+					function loc_get_by_id(id, matrix) {
+						for (column in matrix) {
+							var found = matrix[column].find(function (datum) {
+								return (datum.id === id);
 							});
-							if (typeof foundData !== 'undefined') {
-								return foundData;
-							}
+							if (typeof found !== 'undefined')
+								return (found);
 						}
+						return ({});
 					}
+					if (typeof argument === 'string')
+						return (loc_get_by_id(argument, matrixData));
+					if (typeof argument === 'object') {
+						if (typeof argument.column !== 'undefined' && typeof argument.index !== 'undefined')
+							return (matrixData[argument.column][argument.index]);
+						if (typeof argument.id !== 'undefined')
+							return (loc_get_by_id(argument.id, matrixData));
+					}
+					return ({});
+					break;
+
+				case 'addColumn': 
+					addColumnAfter(argument.dom, argument.column);
 					break;
 				case 'filter':
 					filter = argument;
-					matrix = $.extend({}, Self.data('matrix'));
-					Self.data('filter', filter);
+					matrix = $.extend({}, KANBAN.data('matrix'));
+					KANBAN.data('filter', filter);
 					matrix = filterMatrixBy(matrix, filter);
 					buildCards(Self, matrix);
 					bindDragAndDropEvents(Self, _dragAndDropManager);
@@ -1743,9 +1841,9 @@
 					}
 					break;
 				case 'moveCard':
-					createCardDom = Self.find('.kanban-list-card-detail[data-id="' + argument.id + '"]');
+					createCardDom = KANBAN.find('.kanban-list-card-detail[data-id="' + argument.id + '"]');
+					matrix = KANBAN.data('matrix');
 					if (createCardDom.length === 0) {
-						matrix = Self.data('matrix');
 						for (column in matrix) {
 							index = matrix[column].findIndex(function (datum) {
 								return datum.id === argument.id;
@@ -1755,19 +1853,20 @@
 							}
 						}
 						data = matrix[column][index];
+						argument.position = typeof argument.position === 'number' ? argument.position : matrix[column].length;
 						createCardDom = buildCard({ data: data, settings: settings });
 						createCardDom.hide();
-					}
+					} else
+						argument.position = typeof argument.position === 'number' ? argument.position : matrix[argument.target].length;
 					moveCard(Self, createCardDom, argument.target, argument.position);
-					_dragAndDropManager.onCardDrop(createCardDom, Self, typeof argument.notify === 'boolean' ? argument.notify : false);
+					_dragAndDropManager.onCardDrop(createCardDom, typeof argument.notify === 'boolean' ? argument.notify : false);
 					break;
 				case 'destroy':
-					if (typeof settings.onDestroy === 'function') {
+					if (typeof settings.onDestroy === 'function')
 						settings.onDestroy();
-					}
-					Self.removeClass('kanban-initialized');
-					Self.removeData();
-					Self.empty().html('');
+					KANBAN.removeClass('kanban-initialized');
+					KANBAN.removeData();
+					KANBAN.empty().html('');
 					break;
 			}
 		}
@@ -1776,5 +1875,4 @@
 		});
 		return this;
 	};
-})
-	(jQuery, window);
+})(jQuery, window);
