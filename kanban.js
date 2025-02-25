@@ -1,8 +1,15 @@
 (function ($, W) {
 	let KANBAN;
+	let SETTINGS;
 	String.prototype.ucfirst = function () {
 		return this.charAt(0).toUpperCase() + this.slice(1);
 	};
+
+	Array.prototype.last = function() {
+		if (this.length === 0)
+			return undefined;
+		return this[this.length - 1];
+	}
 
 	var _dragSubstituteDom = $('<div>', {
 		'class': 'kanban-list-card-detail substitute'
@@ -15,7 +22,6 @@
 			var i;
 			if (typeof notify !== 'boolean')
 				notify = true;
-			var settings = KANBAN.data('settings');
 			var oldColumn = self.data('column');
 			var newColumn = self.parents('.kanban-list-wrapper').data('column');
 			var data = self.data('datum');
@@ -61,10 +67,10 @@
 
 			KANBAN.find('.card-counter[data-column="' + oldColumn + '"]').text(newDataMatrix[oldColumn].length);
 			KANBAN.find('.card-counter[data-column="' + newColumn + '"]').text(newDataMatrix[newColumn].length);
-			if (typeof settings.onCardDrop === 'function' && notify) {
+			if (typeof SETTINGS.onCardDrop === 'function' && notify) {
 				var columnInfo = {
 					data: data,
-					columns: settings.headers,
+					columns: SETTINGS.headers,
 					origin: oldColumn,
 					target: newColumn
 				};
@@ -72,14 +78,13 @@
 					origin: oldDataList,
 					target: newDataList
 				};
-				settings.onCardDrop.call(KANBAN, columnInfo, dataInfo);
+				SETTINGS.onCardDrop.call(KANBAN, columnInfo, dataInfo);
 			}
 		},
 		onColumnDrop: function (element, notify) {
 			if (typeof notify !== 'boolean') {
 				notify = true;
 			}
-			var settings = KANBAN.data('settings');
 			var matrix = KANBAN.data('matrix');
 			var position = KANBAN.find('.kanban-list-wrapper:not(.js-add-column)').index(element);
 			var matrixIndexes = Object.keys(matrix);
@@ -93,8 +98,8 @@
 			});
 			matrix = $.extend({}, newMatrix);
 			KANBAN.data('matrix', matrix);
-			if (typeof settings.onColumnDrop === 'function' && notify) {
-				settings.onColumnDrop({
+			if (typeof SETTINGS.onColumnDrop === 'function' && notify) {
+				SETTINGS.onColumnDrop({
 					column: columnName,
 					columns: matrixIndexes,
 					origin: oldPosition,
@@ -156,17 +161,15 @@
 
 	function addCardClicked() {
 		var self = $(this);
-		var Context = self.data('context');
-		var settings = Context.data('settings');
 		var textArea = self.parents('.card-composer').find('.js-card-title');
-		var matrix = $.extend({}, Context.data('matrix'));
+		var matrix = $.extend({}, KANBAN.data('matrix'));
 		if (textArea.val()) {
 			var column = self.data('column');
 			var index, filter;
 			switch (self.data('action')) {
 				case 'update':
 					index = parseInt(self.data('target'), 10);
-					var cardDetailDom = Context.find('.kanban-list-card-detail[data-column=' + column + ']').eq(index);
+					var cardDetailDom = KANBAN.find('.kanban-list-card-detail[data-column=' + column + ']').eq(index);
 					$('[data-column="' + column + '"] .kanban-list-card-title').eq(index).text(textArea.val());
 					var oldValue = cardDetailDom.data('datum');
 					var newValue = $.extend({}, oldValue);
@@ -175,59 +178,60 @@
 						return data.id === oldValue.id;
 					});
 					matrix[column][realIndex] = newValue;
-					Context.data('matrix', matrix);
+					KANBAN.data('matrix', matrix);
 
-					filter = Context.data('filter');
+					filter = KANBAN.data('filter');
 					matrix = filterMatrixBy(matrix, filter);
-					if (typeof settings.onCardUpdate === 'function') {
-						settings.onCardUpdate({ oldValue: oldValue, newValue: newValue });
+					if (typeof SETTINGS.onCardUpdate === 'function') {
+						SETTINGS.onCardUpdate({ oldValue: oldValue, newValue: newValue });
 					}
-					buildCards(Context, matrix);
-					bindDragAndDropEvents(Context, _dragAndDropManager);
-					if (typeof settings.onRenderDone === 'function') {
-						settings.onRenderDone();
+					buildCards(KANBAN, matrix);
+					bindDragAndDropEvents(KANBAN, _dragAndDropManager);
+					if (typeof SETTINGS.onRenderDone === 'function') {
+						SETTINGS.onRenderDone();
 					}
 					break;
 				case 'insert':
-					var cardsContainerDom = Context.find('#kanban-wrapper-' + column + ' .kanban-list-cards');
+					var cardsContainerDom = KANBAN.find('#kanban-wrapper-' + column + ' .kanban-list-cards');
 					var createdId = 'Column' + Date.now();
+					const mentions = [];
+					cardsContainerDom.find(".mention-item").each((_, e) => {
+						mentions.push($(e).data());
+					});
 					var newData = {
 						id: createdId,
 						header: column,
 						title: textArea.val(),
 						instanceIdentity: createdId,
 						position: cardsContainerDom.children().length - 1,
-						editable: settings.canEditCard,
-						canMoveCard: settings.canMoveCard,
+						editable: SETTINGS.canEditCard,
+						canMoveCard: SETTINGS.canMoveCard,
 						isClickable: true,
 						html: false,
-						contributors: [],
+						contributors: mentions,
 						actions: []
 					};
 					matrix[column].push(newData);
-					Context.data('matrix', matrix);
+					KANBAN.data('matrix', matrix);
 
-					filter = Context.data('filter');
+					filter = KANBAN.data('filter');
 					var filteredMatrix = filterMatrixBy(matrix, filter);
 					index = filteredMatrix[column].findIndex(function (data) {
 						return data.id === newData.id;
 					});
 					if (index >= 0) {
-						cardsContainerDom.append(buildCard({
-							data: newData,
-							settings: settings
-						}));
-						update_action_count.call(Context, column, filter);
+						cardsContainerDom.append(buildCard(newData));
+						update_action_count.call(KANBAN, column, filter);
 					}
-					if (typeof settings.onCardInsert === 'function')
-						settings.onCardInsert(newData);
-					bindDragAndDropEvents(Context, _dragAndDropManager);
-					if (typeof settings.onRenderDone === 'function')
-						settings.onRenderDone();
+					if (typeof SETTINGS.onCardInsert === 'function')
+						SETTINGS.onCardInsert(newData);
+					bindDragAndDropEvents(KANBAN, _dragAndDropManager);
+					if (typeof SETTINGS.onRenderDone === 'function')
+						SETTINGS.onRenderDone();
 					break;
 			}
 			$('.js-cancel').trigger('click');
-			Context.find('.kanban-list-wrapper').trigger('editor-close');
+			KANBAN.find('.kanban-list-wrapper').trigger('editor-close');
 			$('.kanban-overlay.active').trigger('click');
 		}
 	}
@@ -332,45 +336,133 @@
 		return groupX && groupY;
 	}
 
-	function buildNewCardInput(Context, column) {
-		var wrapperDom = Context.find('#kanban-wrapper-' + column);
-		var html = printf('' +
-			'<div class="card-composer">' +
-			'    <div class="list-card js-composer">' +
-			'        <div class="list-card-details u-clearfix">' +
-			'            <textarea class="list-card-composer-textarea js-card-title" dir="auto" placeholder="{{cardTitle}}…"></textarea>' +
-			'        </div>' +
-			'    </div>' +
-			'    <div class="cc-controls u-clearfix">' +
-			'        <div class="cc-controls-section">' +
-			'            <input class="nch-button nch-button--primary confirm mod-compact js-add-card" type="submit" value="{{buttonMessage}}" data-column="{{column}}" data-action="insert">' +
-			'            <a class="icon-lg icon-close dark-hover js-cancel" href="!#">' +
-			'                <span class="fa fa-times"></span>' +
-			'            </a>' +
-			'        </div>' +
-			'    </div>' +
-			'</div>', {
-			cardTitle: translate('enter a title for this card'),
-			buttonMessage: translate('add a card').ucfirst(),
-			column: column
+	function build_contributor_mention(can_contribute) {
+		const item_dom = $("<li>", {
+			class: "mention-item",
+			data: can_contribute
+		}).append(`
+			<div class="mention-image">
+				<img src="${can_contribute.image}" alt="${can_contribute.alias}" />
+			</div>
+			<div class="mention-cancel">
+				<span class="fa fa-times"></span>
+			</div>
+		`);
+		item_dom.on("mousedown", ".mention-cancel", () => item_dom.remove());
+		return item_dom;
+	}
+
+	function buildNewCardInput(column) {
+		const wrapperDom = KANBAN.find('#kanban-wrapper-' + column);
+		wrapperDom.prop("draggable", false);
+		const composer_dom = $("<div>")
+								.addClass("card-composer")
+								.append(`
+									<div class="list-card js-composer">
+										<div class="list-card-details u-clearfix">
+											<ul class="mention-container"></ul>
+											<textarea class="list-card-composer-textarea js-card-title" dir="auto" placeholder="${translate('enter a title for this card')}…"></textarea>
+											<ul class="mention-filter"></ul>
+										</div>
+									</div>
+									<div class="cc-controls u-clearfix">
+										<div class="cc-controls-section">
+											<input class="nch-button nch-button--primary confirm mod-compact js-add-card" type="submit" value="${translate('add a card').ucfirst()}" data-column="${column}" data-action="insert">
+											<a class="icon-lg icon-close dark-hover js-cancel" href="!#">
+												<span class="fa fa-times"></span>
+											</a>
+										</div>
+									</div>
+								`);
+
+		function open_mention_filter() {
+			const can_contributes = SETTINGS.canContributes && Array.isArray(SETTINGS.canContributes) ? SETTINGS.canContributes : [];
+			const mention_filter_dom = composer_dom.find(".mention-filter").empty();
+			$.each(can_contributes, (_, can_contribute) => {
+				if (composer_dom.find(".mention-container>.mention-item").filter((_, e) => $(e).data("alias") === can_contribute.alias).length > 0)
+					return true;
+				const item_dom = $("<li>", {
+					class: "mention-filter-list-item",
+					data: can_contribute
+				}).append(`
+					<div class="mention-filter-image">
+						<img src="${can_contribute.image}" alt="${can_contribute.alias}" />
+					</div>
+					<div class="mention-filter-info">
+						<span class="mention-filter-name">${can_contribute.name}</span>
+						<span class="mention-filter-alias">${can_contribute.alias}</span>
+					</div>
+				`);
+				item_dom.on("mousedown", function() {
+					composer_dom.find(".mention-container").append(build_contributor_mention($(this).data()));
+					mention_filter_dom.empty();
+					let new_value = composer_dom.find(".list-card-composer-textarea.js-card-title").val().split(' ');
+					new_value.pop();
+					new_value = new_value.join(' ');
+					composer_dom.find(".list-card-composer-textarea.js-card-title").val(new_value);
+				});
+				mention_filter_dom.append(item_dom);
+			});
+			composer_dom.find(".list-card-composer-textarea.js-card-title").off("input").on("input", function() {
+				const self = $(this);
+				const split = self.val().split(' ');
+				let word;
+
+				if (split.length > 0 && (word = split.pop()).match(/^@[a-zA-Z]{0,1}[a-zA-Z0-9]*$/)) {
+					const name_regex = RegExp(word.slice(1), 'i');
+					mention_filter_dom.find(".mention-filter-list-item").each(function() {
+						const self = $(this);
+						const data = self.data();
+						if (data.name.match(name_regex) || data.alias.match(name_regex) || word === '@') {
+							self.css("display", '');
+							self.find(".mention-filter-name").html(data.name.replace(name_regex, function(match) {
+								return `<span class="mention-match">${match}</span>`;
+							}));
+							self.find(".mention-filter-alias").html(data.alias.replace(name_regex, function(match) {
+								return `<span class="mention-match">${match}</span>`;
+							}));
+						} else
+							self.hide();
+					});
+				} else if (split.length > 0 && (word = split.last()).match(/^@[a-zA-Z]{1,}[a-zA-Z0-9]*$/)) {
+					mention_filter_dom.find(".mention-filter-list-item").each(function() {
+						const self = $(this);
+						const data = self.data();
+						if (data.alias === word.slice(1)) {
+							composer_dom.find(".mention-container").append(build_contributor_mention($(this).data()));
+							split.pop();
+							const new_value = split.join(' ')
+							composer_dom.find(".list-card-composer-textarea.js-card-title").val(new_value);
+						}
+						mention_filter_dom.empty();
+					});
+				} else 
+					mention_filter_dom.empty();
+			})
+		}
+		composer_dom.on("input", ".list-card-composer-textarea.js-card-title", e => {
+			const split = $(e.target).val().split(' ');
+			if (split.length > 0 && split.last().match(/^@[a-zA-Z]{0,1}[a-zA-Z0-9]*$/) && composer_dom.find(".mention-filter-list-item").length === 0 && SETTINGS.enableMention)
+				open_mention_filter();
 		});
 		wrapperDom.off('editor-close');
 		wrapperDom.on('editor-close', function () {
+			if (SETTINGS.canMoveColumn)
+				wrapperDom.prop("draggable", true);
 			wrapperDom.find('.card-composer').remove();
 			wrapperDom.find('.kanban-new-card-button').css('display', '');
-			Context.off('click', checkCloseEditor);
+			KANBAN.off('click', checkCloseEditor);
 		});
 
 		function checkCloseEditor(event) {
-			var cardComposerDom = wrapperDom.find('.card-composer');
-			var targetDom = $(event.target);
-			if (!targetDom.get(0).isSameNode(cardComposerDom.get(0)) && targetDom.parents('.card-composer').length === 0) {
+			const cardComposerDom = wrapperDom.find('.card-composer');
+			const targetDom = $(event.target);
+			if (!targetDom.is(cardComposerDom) && targetDom.parents('.card-composer').length === 0)
 				wrapperDom.trigger('editor-close');
-			}
 		}
 
-		Context.on('click', checkCloseEditor);
-		Context.find('.list-card-composer-textarea').on('input', function () {
+		KANBAN.on('click', checkCloseEditor);
+		KANBAN.find('.list-card-composer-textarea').on('input', function () {
 			var self = $(this);
 			self.height(0);
 			var scrollHeight = self.prop('scrollHeight');
@@ -387,7 +479,7 @@
 			event.preventDefault();
 			wrapperDom.trigger('editor-close');
 		});
-		return html;
+		return composer_dom;
 	}
 
 	function getDataFromCard(Context, cardDom) {
@@ -399,7 +491,7 @@
 		return filteredMatrix[column][index];
 	}
 
-	function buildContributorsDropdown(settings, contributorsList) {
+	function buildContributorsDropdown(contributorsList) {
 		const card_dom = this;
 		const datum = card_dom.data("datum");
 		const list_dom = $("<ul>", {
@@ -425,22 +517,18 @@
 					card_dom.find(".contributors-preview")
 						.html(`${datum.contributors.length} <span class="fa fa-users"></span>`);
 					container_dom.remove();
-					card_dom.append(buildContributorsDropdown.call(card_dom, settings, datum.contributors));
+					card_dom.append(buildContributorsDropdown.call(card_dom, datum.contributors));
 					matrix[datum.header] = matrix[datum.header].map(vector => {
 						if (vector.instanceIdentity !== datum.instanceIdentity)
 							return vector;
 						return datum;
 					});
 					KANBAN.data("matrix", matrix);
-					if (typeof settings.onContributorRemove === "function")
-						settings.onContributorRemove(to_delete);
+					if (typeof SETTINGS.onContributorRemove === "function")
+						SETTINGS.onContributorRemove(to_delete);
 				}
 				const contributor_info =  $("<div>", {
 					class: "contributor-info",
-					data: {
-						card: card_dom,
-						settings: settings,
-					},
 					...data
 				})
 				.append(`
@@ -458,8 +546,8 @@
 				.on("click", function() {
 					const self = $(this);
 
-					if (typeof settings.onContributorClick === "function")
-						settings.onContributorClick(self.data());
+					if (typeof SETTINGS.onContributorClick === "function")
+						SETTINGS.onContributorClick(self.data());
 				});
 			list_dom.append(contributor_info);
 		});
@@ -467,9 +555,7 @@
 		return container_dom;
 	}
 
-	function buildCard(options) {
-		var data = options.data;
-		var settings = options.settings;
+	function buildCard(data) {
 		var listCardDetailContainer = $('<div>')
 			.attr('data-column', data.header)
 			.attr('data-id', data.id)
@@ -509,9 +595,9 @@
 			listCardDetailText.html(data.title);
 		else 
 			listCardDetailText.text(data.title);
-		if (settings.canEditCard && data.editable)
+		if (SETTINGS.canEditCard && data.editable)
 			cardActionDom.append(listCardDetailEdit);
-		if (settings.canDuplicateCard)
+		if (SETTINGS.canDuplicateCard)
 			cardActionDom.append(cardDuplicate);
 		if (data.actions.length) {
 			$.each(data.actions, function (_, oneAction) {
@@ -519,7 +605,7 @@
 				if (typeof oneAction.icon === 'undefined' && typeof oneAction.badge === 'undefined') {
 					return true;
 				}
-				if (settings.actionConditionEnabled && typeof oneAction.hideCondition !== 'undefined') {
+				if (SETTINGS.actionConditionEnabled && typeof oneAction.hideCondition !== 'undefined') {
 					var interrupt = false;
 					for (var key in oneAction.hideCondition) {
 						if (typeof oneAction[key] !== 'undefined' && oneAction[key].toString() === oneAction.hideCondition[key].toString()) {
@@ -561,9 +647,9 @@
 				}
 			});
 		}
-		if (settings.showContributors)
+		if (SETTINGS.showContributors)
 			cardFooterDom.append(contributorDom);
-		if (settings.canMoveCard && data.canMoveCard)
+		if (SETTINGS.canMoveCard && data.canMoveCard)
 			cardActionDom.append(listCardDetailSwitch);
 		listCardDetailContainer
 			.append(listCardDetailText)
@@ -571,7 +657,7 @@
 		if (cardFooterDom.children().length)
 			listCardDetailContainer.append(cardFooterDom);
 		if (data.contributors.length)
-			listCardDetailContainer.append(buildContributorsDropdown.call(listCardDetailContainer, settings, data.contributors))
+			listCardDetailContainer.append(buildContributorsDropdown.call(listCardDetailContainer, data.contributors))
 		return listCardDetailContainer;
 	}
 
@@ -587,6 +673,10 @@
 				left: position.x,
 				width: size.width
 			}
+		});
+		container.on("keydown", ".list-card-composer-textarea", e => {
+			if (e.originalEvent.key === "Escape")
+				$(".kanban-overlay.active").trigger("click");
 		});
 		container.html(printf('' +
 			'<div class="list-card js-composer">' +
@@ -659,7 +749,7 @@
 		copy.id = 'Column' + Date.now();
 		copy.position = cardDom.parents('.kanban-list-cards').find('.kanban-list-card-detail').index(cardDom) + 1;
 		addData(context, [copy]);
-		var createdCard = buildCard({ data: copy, settings: context.data('settings') });
+		var createdCard = buildCard(copy);
 		cardDom.after(createdCard);
 		if (options.bindDragAndDropEvent) {
 			bindDragAndDropEvents(context, _dragAndDropManager);
@@ -681,7 +771,6 @@
 	}
 
 	function bindDragAndDropEvents(Context, events) {
-		var settings = Context.data('settings');
 		var diffX = 0,
 			diffY = 0,
 			outerWidth = 0,
@@ -697,7 +786,7 @@
 		function externalDropCard(event) {
 			var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
 			var targetDom = $(event.target);
-			Context.find('.kanban-list-wrapper').attr('draggable', settings.canMoveColumn.toString());
+			Context.find('.kanban-list-wrapper').attr('draggable', SETTINGS.canMoveColumn.toString());
 			if (draggingElement !== null && (targetDom.hasClass('kanban-list-card-detail') && !targetDom.get(0).isSameNode(draggingElement) || targetDom.parents('.kanban-list-card-detail').length && !targetDom.parents('.kanban-list-card-detail').get(0).isSameNode(draggingElement))) {
 				mouseup(draggingElement);
 			}
@@ -714,15 +803,13 @@
 				draggingElement = draggingElement !== null ? draggingElement : ($(event.target).hasClass('kanban-list-card-detail') ? event.target : $(event.target).parents('.kanban-list-card-detail').get(0))
 				mousemove(coordinates, draggingElement);
 			}
-			if (!isPointerInsideOf(Context.get(0), coordinates)) {
+			if (!isPointerInsideOf(Context.get(0), coordinates))
 				mouseup(draggingElement);
-			}
 		}
 
 		function mousedown(event) {
-			if (event.button === 2) {
+			if (event.button === 2)
 				return false;
-			}
 			event.stopPropagation();
 			var self = $(this);
 			Context.find('.kanban-list-wrapper').attr('draggable', 'false');
@@ -740,8 +827,8 @@
 			outerHeight = self.outerHeight();
 			width = self.width();
 			height = self.height();
-			dragstart = settings.canMoveCard && self.data('datum').canMoveCard && filteredTarget.length === 0;
-			isCopyWhenDragFromColumn = settings.copyWhenDragFrom.includes(self.data('datum').header);
+			dragstart = SETTINGS.canMoveCard && self.data('datum').canMoveCard && filteredTarget.length === 0;
+			isCopyWhenDragFromColumn = SETTINGS.copyWhenDragFrom.includes(self.data('datum').header);
 			originalCard.off('mouseup').one('mouseup', function () {
 				mouseup(this);
 			});
@@ -800,7 +887,7 @@
 
 		function mouseup(element) {
 			var self = $(element);
-			Context.find('.kanban-list-wrapper').attr('draggable', settings.canMoveColumn.toString());
+			Context.find('.kanban-list-wrapper').attr('draggable', SETTINGS.canMoveColumn.toString());
 			self.off('mouseup');
 			Context.off('mouseup', externalDropCard);
 			$(document).off('mousemove', movingCardDrop);
@@ -864,8 +951,7 @@
 		}
 
 		function checkDragOver(position) {
-			var settings = settings = Context.data('settings');
-			Context.find('.kanban-list-content').each(function () {
+			KANBAN.find('.kanban-list-content').each(function () {
 				if (!isPointerInsideOf(this, position)) {
 					return true;
 				}
@@ -882,7 +968,7 @@
 				if (hoverefReferenceColumnCard.length) {
 					_dragSubstituteDom.detach();
 					hoverefReferenceColumnCard.addClass('hovered');
-				} else if (!(originalCard.data('datum').header === column && settings.copyWhenDragFrom.includes(column)) && !settings.readonlyHeaders.includes(column) && cardDomHavingSameInstanceIdentity.length === 0) {
+				} else if (!(originalCard.data('datum').header === column && SETTINGS.copyWhenDragFrom.includes(column)) && !SETTINGS.readonlyHeaders.includes(column) && cardDomHavingSameInstanceIdentity.length === 0) {
 					var containerVanillaDom = this.querySelector('.kanban-list-cards');
 					var afterElementVanillaDom = getVerticalDragAfterElement(containerVanillaDom, position.y);
 					if (typeof afterElementVanillaDom === 'undefined') {
@@ -906,23 +992,21 @@
 			height = 0;
 		}
 
-		Context.find('.kanban-list-card-detail').each(function () {
+		KANBAN.find('.kanban-list-card-detail').each(function () {
 			$(this).off('mousedown').off('mouseup', mouseup);
 		});
-		Context.find('.kanban-list-card-detail').each(function () {
+		KANBAN.find('.kanban-list-card-detail').each(function () {
 			$(this).on('mousedown', mousedown);
 		});
 	}
 
 	function buildCardMoveContext(Context, headers, selectedData, matrixData) {
-		var settings = Context.data('settings');
-
 		function shouldCopy(column) {
-			return settings.copyWhenDragFrom.includes(column);
+			return SETTINGS.copyWhenDragFrom.includes(column);
 		}
 
 		function isColumnReadOnly(column) {
-			return settings.readonlyHeaders.includes(column)
+			return SETTINGS.readonlyHeaders.includes(column)
 		}
 
 		var filteredHeaders = headers.filter(function (filterHeader) {
@@ -992,7 +1076,6 @@
 	function addColumns(Context, headers) {
 		$.each(headers, function (_, oneHeader) {
 			var matrix = $.extend({}, Context.data('matrix'));
-			var settings = Context.data('settings');
 
 			function findHeader(oneHeaderFind) {
 				return oneHeaderFind.id === oneHeader.id;
@@ -1001,24 +1084,22 @@
 			if (typeof matrix[oneHeader.id] === 'undefined' || !Array.isArray(matrix[oneHeader.id])) {
 				matrix[oneHeader.id] = [];
 			}
-			if (typeof settings.headers.find(findHeader) === 'undefined') {
-				settings.headers.push(oneHeader);
+			if (typeof SETTINGS.headers.find(findHeader) === 'undefined') {
+				SETTINGS.headers.push(oneHeader);
 			}
 			Context.data('matrix', matrix);
-			Context.data('settings', settings);
 		});
 	}
 
 	function addData(Context, data) {
-		var settings = Context.data('settings');
 		var compiledDataList = data.filter(function (datumFilter) {
 			return typeof datumFilter.id !== 'undefined' && typeof datumFilter.header !== 'undefined';
 		}).map(function (datumMap) {
 			var defaultDadum = {
 				html: false,
 				instanceIdentity: datumMap.id,
-				editable: settings.canEditCard,
-				canMoveCard: settings.canMoveCard,
+				editable: SETTINGS.canEditCard,
+				canMoveCard: SETTINGS.canMoveCard,
 				isClickable: true,
 				actions: [],
 				contributors: [],
@@ -1096,7 +1177,6 @@
 	}
 
 	function buildColumns(Context) {
-		var settings = Context.data('settings');
 		var matrix = Context.data('matrix');
 		var filter = Context.data('filter');
 		var kanbanContainerDom = Context.find('.kanban-container');
@@ -1105,13 +1185,13 @@
 			if (Context.find('kanban-list-wrapper[data-column="' + oneHeaderKey + '"]').length > 0) {
 				return false;
 			}
-			var oneHeader = settings.headers.find(function (oneHeaderFind) { return oneHeaderFind.id === oneHeaderKey; });
+			var oneHeader = SETTINGS.headers.find(function (oneHeaderFind) { return oneHeaderFind.id === oneHeaderKey; });
 			if (typeof oneHeader === 'undefined')
 				return (true);
 			oneHeader.menus = typeof oneHeader.menus !== 'object' || !Array.isArray(oneHeader.menus) ? [] : oneHeader.menus;
 			kanbanContainerDom.append(buildColumn(Context, oneHeader));
 		});
-		if (settings.canAddColumn) {
+		if (SETTINGS.canAddColumn) {
 			var kanbanListWrapperDom = $('<div>', {
 				'class': 'kanban-list-wrapper js-add-column',
 				id: 'kanban-wrapper-null',
@@ -1138,12 +1218,11 @@
 			classNameList: []
 		};
 		header = $.extend(headerDefaultOption, header);
-		var settings = Context.data('settings');
 		var kanbanListWrapperDom = $('<div>', {
 			'class': 'kanban-list-wrapper',
 			id: 'kanban-wrapper-' + header.id,
 			'data-column': header.id
-		}).attr('draggable', settings.canMoveColumn.toString());
+		}).attr('draggable', SETTINGS.canMoveColumn.toString());
 		var kanbanListContentDom = $('<div>', {
 			'class': 'kanban-list-content'
 		});
@@ -1154,7 +1233,7 @@
 			'class': 'kanban-list-header',
 			html: printf('<span class="column-header-text">{{label}}</span><input class="column-header-editor" value="{{label}}" type="text">{{counterHtml}}', {
 				label: header.label,
-				counterHtml: settings.showCardNumber ? '<span class="card-counter-container"> (<span data-column="' + header.id + '" class="card-counter">0</span>)</span>' : ''
+				counterHtml: SETTINGS.showCardNumber ? '<span class="card-counter-container"> (<span data-column="' + header.id + '" class="card-counter">0</span>)</span>' : ''
 			})
 		}).data('editable', header.editable);
 
@@ -1164,9 +1243,9 @@
 			'{{addCardHtml}}' +
 			'{{addColumnHtml}}' +
 			'</ul>', {
-			editHtml: settings.canEditHeader && (settings.defaultColumnMenus.length === 0 || settings.defaultColumnMenus.includes('edit_header')) ? '<li class="dropdown-item" data-target="column-rename">' + translate('rename this column').ucfirst() + '</li>' : '',
-			addCardHtml: settings.canAddCard && (settings.defaultColumnMenus.length === 0 || settings.defaultColumnMenus.includes('add_card')) ? '<li class="dropdown-item" data-target="add-card">' + translate('add a new card').ucfirst() + '</li>' : '',
-			addColumnHtml: settings.canAddColumn && (settings.defaultColumnMenus.length === 0 || settings.defaultColumnMenus.includes('add_column')) ? '<li class="dropdown-item" data-target="add-column">' + translate('add a new column').ucfirst() + '</li>' : ''
+			editHtml: SETTINGS.canEditHeader && (SETTINGS.defaultColumnMenus.length === 0 || SETTINGS.defaultColumnMenus.includes('edit_header')) ? '<li class="dropdown-item" data-target="column-rename">' + translate('rename this column').ucfirst() + '</li>' : '',
+			addCardHtml: SETTINGS.canAddCard && (SETTINGS.defaultColumnMenus.length === 0 || SETTINGS.defaultColumnMenus.includes('add_card')) ? '<li class="dropdown-item" data-target="add-card">' + translate('add a new card').ucfirst() + '</li>' : '',
+			addColumnHtml: SETTINGS.canAddColumn && (SETTINGS.defaultColumnMenus.length === 0 || SETTINGS.defaultColumnMenus.includes('add_column')) ? '<li class="dropdown-item" data-target="add-column">' + translate('add a new column').ucfirst() + '</li>' : ''
 		}));
 		$.each(header.menus, function (_, oneMenu) {
 			var menuDom = $('<li>').addClass('dropdown-item').attr('data-target', 'custom-menu').data('action', oneMenu.action).data('header', header).text(oneMenu.label);
@@ -1193,7 +1272,7 @@
 			}
 		});
 		kanbanListHeaderDom.append(actionDropdownDom);
-		if (settings.canAddCard) {
+		if (SETTINGS.canAddCard) {
 			composerContainerDom.append(addNewCardButtonDom);
 		}
 		kanbanListContentDom
@@ -1216,18 +1295,16 @@
 			menus: []
 		};
 		var newColumn = buildColumn(context, newHeader);
-		var settings = context.data('settings');
 		var wrapperIndex = context.find('.kanban-list-wrapper').index(wrapperDom);
-		settings.headers.splice(wrapperIndex + 1, 0, newHeader);
-		$.each(settings.headers, function (_, header) {
+		SETTINGS.headers.splice(wrapperIndex + 1, 0, newHeader);
+		$.each(SETTINGS.headers, function (_, header) {
 			newMatrix[header.id] = typeof oldMatrix[header.id] === 'undefined' ? [] : oldMatrix[header.id];
 		});
-		context.data('settings', settings);
 		context.data('matrix', newMatrix);
 		wrapperDom.after(newColumn);
 		newColumn.find('.column-header-text').trigger('click');
-		if (typeof settings.onColumnInsert === 'function') {
-			settings.onColumnInsert.call(context, newHeader);
+		if (typeof SETTINGS.onColumnInsert === 'function') {
+			SETTINGS.onColumnInsert.call(context, newHeader);
 		}
 	}
 
@@ -1236,47 +1313,39 @@
 		var oldMatrix = context.data('matrix');
 		var newMatrix = {};
 		var newColumn = buildColumn(context, newHeader);
-		var settings = context.data('settings');
 		var wrapperIndex = context.find('.kanban-list-wrapper').index(wrapperDom);
-		settings.headers.splice(wrapperIndex + 1, 0, newHeader);
-		$.each(settings.headers, function (_, header) {
+		SETTINGS.headers.splice(wrapperIndex + 1, 0, newHeader);
+		$.each(SETTINGS.headers, function (_, header) {
 			newMatrix[header.id] = typeof oldMatrix[header.id] === 'undefined' ? [] : oldMatrix[header.id];
 		});
-		context.data('settings', settings);
 		context.data('matrix', newMatrix);
 		wrapperDom.after(newColumn);
 		newColumn.find('.column-header-text').trigger('click');
-		if (typeof settings.onColumnInsert === 'function') {
-			settings.onColumnInsert.call(context, newHeader);
+		if (typeof SETTINGS.onColumnInsert === 'function') {
+			SETTINGS.onColumnInsert.call(context, newHeader);
 		}
 	}
 
 	function buildCards(Context, matrix) {
-		var settings = Context.data('settings');
 		if (typeof matrix === 'undefined') { matrix = $.extend({}, Context.data('matrix')); }
 		$.each(matrix, function (column, oneMatrixData) {
 			var listCardDom = Context.find('#kanban-wrapper-' + column + ' .kanban-list-cards');
 			Context.find('.kanban-list-header .card-counter[data-column="' + column + '"]').text(oneMatrixData.length);
 			listCardDom.empty();
 			$.each(oneMatrixData, function (_, oneMatrixDatum) {
-				listCardDom.append(buildCard({
-					data: oneMatrixDatum,
-					settings: settings
-				}));
+				listCardDom.append(buildCard(oneMatrixDatum));
 			});
 		});
 		mediaQueryAndMaxWidth(Context, 770);
 	}
 
 	function loadKanban(Context) {
-		var settings = Context.data('settings');
-
-		_dragAndDropManager.prependOnly = settings.prependOnly;
+		_dragAndDropManager.prependOnly = SETTINGS.prependOnly;
 		// Traitement des entêtes
-		addColumns(Context, settings.headers);
+		addColumns(Context, SETTINGS.headers);
 
 		// Reordonner la matrice
-		addData(Context, settings.data);
+		addData(Context, SETTINGS.data);
 		// remove all columns
 		Context.find('.kanban-container').empty().html('');
 		// build columns
@@ -1294,7 +1363,6 @@
 		}).on('click', '.kanban-list-header', function (event) {
 			var target = $(event.target);
 			var self = $(this);
-			var settings = Context.data('settings');
 			var excludeElementsList = ['column-header-text', 'column-header-editor', 'kanban-action-dropdown'];
 
 			function notElement(classNames) {
@@ -1304,9 +1372,9 @@
 			if (excludeElementsList.every(notElement) && $('.card-composer').length === 0) {
 				var wrapperDom = self.parents('.kanban-list-wrapper');
 				var column = wrapperDom.data('column');
-				if (typeof settings.onInsertCardAction === 'function')
-					settings.onInsertCardAction(column);
-				if (!settings.canAddCard)
+				if (typeof SETTINGS.onInsertCardAction === 'function')
+					SETTINGS.onInsertCardAction(column);
+				if (!SETTINGS.canAddCard)
 					return (true);
 				wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(Context, column)).scrollTop(0);
 				wrapperDom.find('.js-card-title').focus();
@@ -1320,8 +1388,8 @@
 			}
 			var self = $(this);
 			var data = self.data('datum');
-			if (typeof settings.onCardClick === 'function' && data.isClickable)
-				settings.onCardClick.call(this, data);
+			if (typeof SETTINGS.onCardClick === 'function' && data.isClickable)
+				SETTINGS.onCardClick.call(this, data);
 		}).on('click', '.kanban-list-card-detail:not(.dragging) .kanban-list-card-edit', function (event) {
 			event.stopPropagation();
 			var self = $(this);
@@ -1330,14 +1398,15 @@
 			var parentCardDom = self.parents('.kanban-list-card-detail');
 			var cardIndex = columnKanbanDoms.index(parentCardDom);
 			var data = getDataFromCard(Context, parentCardDom);
-			if (typeof settings.onEditCardAction === 'function') {
-				settings.onEditCardAction.call(this, data);
+			if (typeof SETTINGS.onEditCardAction === 'function') {
+				SETTINGS.onEditCardAction.call(this, data);
 			}
 
 			var overlayDom = $('.kanban-overlay');
-			var scrollLeft = Context.scrollLeft();
-			Context.css('overflow-x', 'hidden');
-			Context.scrollLeft(scrollLeft);
+			var scrollLeft = KANBAN.scrollLeft();
+			KANBAN.css('overflow-x', 'hidden');
+			KANBAN.scrollLeft(scrollLeft);
+			$(document.documentElement).css("overflow-y", "hidden");
 			var parentBcr = parentCardDom.get(0).getBoundingClientRect();
 			overlayDom.append(buildCardEditor({
 				data: data,
@@ -1351,7 +1420,6 @@
 				column: columnId,
 				index: cardIndex
 			})).addClass('active');
-			overlayDom.find('.js-add-card').data('context', Context);
 			var textAreaDom = overlayDom.find('textarea');
 			textAreaDom.focus();
 			textAreaDom.select();
@@ -1363,7 +1431,6 @@
 		}).on('click', '.kanban-list-card-detail:not(.dragging) .kanban-list-card-switch', function (event) {
 			event.stopPropagation();
 			var self = $(this);
-			var settings = Context.data('settings');
 			var columnId = self.data('column');
 			var columnKanbanDoms = $('.kanban-list-card-switch[data-column="' + columnId + '"]');
 			var cardIndex = columnKanbanDoms.index(self);
@@ -1371,20 +1438,20 @@
 			var filter = Context.data('filter');
 			matrix = filterMatrixBy(matrix, filter);
 			var data = matrix[columnId][cardIndex];
-			if (typeof settings.onMoveCardAction === 'function') {
-				settings.onMoveCardAction(data);
+			if (typeof SETTINGS.onMoveCardAction === 'function') {
+				SETTINGS.onMoveCardAction(data);
 			}
 			var overlayDom = $('.kanban-overlay');
 			var scrollLeft = Context.scrollLeft();
 			Context.css('overflow-x', 'hidden');
 			Context.scrollLeft(scrollLeft);
-			var moveContextDom = buildCardMoveContext(Context, settings.headers, data, matrix)
+			var moveContextDom = buildCardMoveContext(Context, SETTINGS.headers, data, matrix)
 			overlayDom.append(moveContextDom).addClass('active');
 			moveContextDom.on('click', '.js-submit', function () {
 				var cardDom = self.parents('.kanban-list-card-detail');
 				var targetColumn = moveContextDom.find('[name=list-map]').val();
 				var targetLine = parseInt(moveContextDom.find('[name=position-map]').val());
-				if (settings.copyWhenDragFrom.includes(cardDom.data('datum').header)) {
+				if (SETTINGS.copyWhenDragFrom.includes(cardDom.data('datum').header)) {
 					cardDom = duplicateCard(cardDom)
 				}
 				moveCard(Context, cardDom, targetColumn, targetLine);
@@ -1399,21 +1466,20 @@
 			var data = cardDom.data('datum');
 			if (typeof jQuery.fn.tooltip === "function")
 				self.tooltip('hide');
-			if (typeof self.data('action') === 'string' && typeof settings[self.data('action')] === 'function')
-				settings[self.data('action')](data, cardDom);
+			if (typeof self.data('action') === 'string' && typeof SETTINGS[self.data('action')] === 'function')
+				SETTINGS[self.data('action')](data, cardDom);
 		}).on('click', '.kanban-list-card-detail:not(.dragging) .card-duplicate', function () {
 			var self = $(this);
 			duplicateCard(self.parents('.kanban-list-card-detail'));
 		}).on('click', '.kanban-new-card-button', function () {
 			var columnId = $(this).data('column');
 			var wrapperDom = $('#kanban-wrapper-' + columnId);
-			wrapperDom.find('.kanban-list-cards').append(buildNewCardInput(Context, columnId));
+			wrapperDom.find('.kanban-list-cards').append(buildNewCardInput(columnId));
 			wrapperDom.find('.js-card-title').focus();
-			wrapperDom.find('.js-add-card').data('context', Context);
-			if (typeof settings.onInsertCardAction === 'function') {
-				settings.onInsertCardAction(columnId);
-			}
-		}).on('click', '.js-add-card', addCardClicked).on('click', '.kanban-action-dropdown .dropdown-trigger', function () {
+			if (typeof SETTINGS.onInsertCardAction === 'function')
+				SETTINGS.onInsertCardAction(columnId);
+		}).on('click', '.js-add-card', addCardClicked)
+		.on('click', '.kanban-action-dropdown .dropdown-trigger', function () {
 			$(this).next('.dropdown-list').toggleClass('open');
 		}).on('click', '.kanban-action-dropdown .dropdown-list.open .dropdown-item', function () {
 			var self = $(this);
@@ -1425,16 +1491,16 @@
 					wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(Context, column)).scrollTop(0);
 					wrapperDom.find('.js-card-title').focus();
 					wrapperDom.find('.js-add-card').data('context', Context);
-					if (typeof settings.onInsertCardAction === 'function') {
-						settings.onInsertCardAction(column);
+					if (typeof SETTINGS.onInsertCardAction === 'function') {
+						SETTINGS.onInsertCardAction(column);
 					}
 					break;
 				case 'column-rename':
 					wrapperDom = self.parents('.kanban-list-wrapper');
-					if (typeof settings.onEditHeaderAction === 'function') {
-						settings.onEditHeaderAction(wrapperDom.data('column'));
+					if (typeof SETTINGS.onEditHeaderAction === 'function') {
+						SETTINGS.onEditHeaderAction(wrapperDom.data('column'));
 					}
-					if (!settings.canEditHeader || !wrapperDom.find('.kanban-list-header').data('editable')) {
+					if (!SETTINGS.canEditHeader || !wrapperDom.find('.kanban-list-header').data('editable')) {
 						break;
 					}
 					headerEditorDom = wrapperDom.find('.column-header-editor');
@@ -1450,8 +1516,8 @@
 					break;
 				case 'custom-menu':
 					var header = self.data('header');
-					if (typeof self.data('action') === 'string' && typeof settings[self.data('action')] === 'function') {
-						settings[self.data('action')](header);
+					if (typeof self.data('action') === 'string' && typeof SETTINGS[self.data('action')] === 'function') {
+						SETTINGS[self.data('action')](header);
 					}
 					break;
 			}
@@ -1464,10 +1530,10 @@
 			Context.trigger('click');
 			var self = $(this);
 			var wrapperDom = self.parents('.kanban-list-wrapper');
-			if (typeof settings.onEditHeaderAction === 'function') {
-				settings.onEditHeaderAction(wrapperDom.data('column'));
+			if (typeof SETTINGS.onEditHeaderAction === 'function') {
+				SETTINGS.onEditHeaderAction(wrapperDom.data('column'));
 			}
-			if (!settings.canEditHeader || !self.parents('.kanban-list-header').data('editable')) {
+			if (!SETTINGS.canEditHeader || !self.parents('.kanban-list-header').data('editable')) {
 				return true;
 			}
 			var headerEditorDom = self.next('.column-header-editor');
@@ -1477,8 +1543,8 @@
 			headerEditorDom.select();
 		}).on('click', '.contributor-info', function () {
 			var self = $(this);
-			if (typeof settings.onContributorClick === 'function') {
-				settings.onContributorClick(self.data());
+			if (typeof SETTINGS.onContributorClick === 'function') {
+				SETTINGS.onContributorClick(self.data());
 			}
 		}).on('click', function (event) {
 			var activeDropdownDomList = Context.find('.dropdown-list.open');
@@ -1490,20 +1556,17 @@
 			}
 			var cancelWhenClass = ['column-header-text', 'column-header-editor', 'dropdown-item', 'kanban-new-column'];
 			if (visibleHeaderEditor.length && cancelWhenClass.every(function (oneClass) { return !$(event.target).hasClass(oneClass) })) {
-				var settings = Context.data('settings');
 				var column = visibleHeaderEditor.parents('.kanban-list-wrapper').data('column').toString();
-				var headerIndex = settings.headers.findIndex(function (oneHeader) {
+				var headerIndex = SETTINGS.headers.findIndex(function (oneHeader) {
 					return oneHeader.id === column;
 				});
-				settings.headers[headerIndex].label = visibleHeaderEditor.val();
-				Context.data('settings', settings);
+				SETTINGS.headers[headerIndex].label = visibleHeaderEditor.val(); 
 				var labelDom = visibleHeaderEditor.prev('.column-header-text');
 				var values = { old: labelDom.text(), new: visibleHeaderEditor.val() };
 				visibleHeaderEditor.css('display', '');
 				labelDom.text(visibleHeaderEditor.val()).css('display', '');
-				if (typeof settings.onHeaderChange === 'function') {
-					settings.onHeaderChange({ column: column, values: values });
-				}
+				if (typeof SETTINGS.onHeaderChange === 'function')
+					SETTINGS.onHeaderChange({ column: column, values: values });
 			}
 		}).on('keydown', '.card-composer', function (event) {
 			if (event.originalEvent.key === 'Enter') {
@@ -1636,12 +1699,12 @@
 
 		// Drag and drop column section
 
-		Context.addClass('kanban-initialized');
+		KANBAN.addClass('kanban-initialized');
 
 		var kanbanOverlayDom = $('.kanban-overlay');
 		if (kanbanOverlayDom.length === 0) {
 			kanbanOverlayDom = $('<div>', { 'class': 'kanban-overlay' });
-			$(document.body).prepend(kanbanOverlayDom);
+			$(document.documentElement).prepend(kanbanOverlayDom);
 		}
 
 		kanbanOverlayDom.on('click', function (event) {
@@ -1652,6 +1715,7 @@
 			if (!self.hasClass('active')) {
 				return;
 			}
+			$(document.documentElement).css("overflow-y", '');
 			self.removeClass('active');
 			self.empty();
 			$('.card-composer').remove();
@@ -1664,21 +1728,20 @@
 			}
 		});
 
-		if (typeof settings.onRenderDone === 'function') {
-			settings.onRenderDone();
+		if (typeof SETTINGS.onRenderDone === 'function') {
+			SETTINGS.onRenderDone();
 		}
 	}
 
 	function initKanban(Context) {
-		var settings = Context.data('settings');
 		Context.empty().html('');
 		Context.append($('<div>', {
 			'class': 'kanban-container'
 		}));
-		if (settings.language === 'en') {
+		if (SETTINGS.language === 'en') {
 			loadKanban(Context);
 		} else {
-			loadTranslation(settings.language, settings.endpoint ? settings.endpoint : null).then(function () {
+			loadTranslation(SETTINGS.language, SETTINGS.endpoint ? SETTINGS.endpoint : null).then(function () {
 				loadKanban(Context);
 			});
 		}
@@ -1687,9 +1750,7 @@
 	$.fn.kanban = function (options, argument) {
 		options = typeof options === 'undefined' ? {} : options;
 		KANBAN = this;
-		var settings;
 		KANBAN.data('matrix', typeof KANBAN.data('matrix') === 'object' ? KANBAN.data('matrix') : {});
-		KANBAN.data('settings', typeof KANBAN.data('settings') === 'object' ? KANBAN.data('settings') : {});
 		KANBAN.data('filter', typeof KANBAN.data('filter') === 'object' ? KANBAN.data('filter') : {});
 		if (typeof options === 'object' && !KANBAN.hasClass('kanban-initialized')) {
 			var defaultOptions = {
@@ -1700,6 +1761,7 @@
 				prependOnly: false,
 				canEditCard: true,
 				canAddCard: true,
+				enableMention: false,
 				canDuplicateCard: false,
 				canMoveCard: true,
 				canMoveColumn: false,
@@ -1711,12 +1773,10 @@
 				readonlyHeaders: [],
 				language: 'en'
 			};
-			settings = $.extend(true, {}, defaultOptions, options);
-			KANBAN.data('settings', settings);
+			SETTINGS = $.extend(true, {}, defaultOptions, options);
 			KANBAN.data('matrix', {});
 			initKanban(KANBAN);
 		} else if (typeof options === 'string' && (typeof argument !== 'undefined' || ['destroy'].includes(options))) {
-			settings = KANBAN.data('settings');
 			var index, filter, matrix, column, data, matrixData, createCardDom;
 			switch (options) {
 				case 'setData':
@@ -1754,12 +1814,12 @@
 						matrixData = filterMatrixBy(matrixData, filter);
 						var oldCardDom = KANBAN.find('.kanban-list-card-detail[data-id="' + argument.id + '"]');
 						if (oldCardDom.length) {
-							oldCardDom.after(buildCard({ data: data, settings: settings }));
+							oldCardDom.after(buildCard(data));
 							oldCardDom.remove();
 						}
 						bindDragAndDropEvents(Self, _dragAndDropManager);
-						if (typeof settings.onRenderDone === 'function')
-							settings.onRenderDone();
+						if (typeof SETTINGS.onRenderDone === 'function')
+							SETTINGS.onRenderDone();
 					}
 					break;
 				case 'addData':
@@ -1773,16 +1833,13 @@
 							return;
 						var index = dataMatrixIndex(datumLoop, matrix);
 						if (index >= 0) {
-							KANBAN.find('#kanban-wrapper-' + datumLoop.header + ' .kanban-list-cards').append(buildCard({
-								data: matrix[datumLoop.header][index],
-								settings: settings
-							}));
+							KANBAN.find('#kanban-wrapper-' + datumLoop.header + ' .kanban-list-cards').append(buildCard(matrix[datumLoop.header][index]));
 						}
 					});
 					update_action_count.call(Self);
 					bindDragAndDropEvents(Self, _dragAndDropManager);
-					if (typeof settings.onRenderDone === 'function')
-						settings.onRenderDone();
+					if (typeof SETTINGS.onRenderDone === 'function')
+						SETTINGS.onRenderDone();
 					break;
 				case 'deleteData':
 					var deletedId = deleteData(Self, argument);
@@ -1799,8 +1856,8 @@
 						else
 							update_action_count.call(Self, null, filter);
 						bindDragAndDropEvents(Self, _dragAndDropManager);
-						if (typeof settings.onRenderDone === 'function')
-							settings.onRenderDone();
+						if (typeof SETTINGS.onRenderDone === 'function')
+							SETTINGS.onRenderDone();
 					}
 					break;
 				case 'getData':
@@ -1836,8 +1893,8 @@
 					matrix = filterMatrixBy(matrix, filter);
 					buildCards(Self, matrix);
 					bindDragAndDropEvents(Self, _dragAndDropManager);
-					if (typeof settings.onRenderDone === 'function') {
-						settings.onRenderDone();
+					if (typeof SETTINGS.onRenderDone === 'function') {
+						SETTINGS.onRenderDone();
 					}
 					break;
 				case 'moveCard':
@@ -1854,7 +1911,7 @@
 						}
 						data = matrix[column][index];
 						argument.position = typeof argument.position === 'number' ? argument.position : matrix[column].length;
-						createCardDom = buildCard({ data: data, settings: settings });
+						createCardDom = buildCard(data);
 						createCardDom.hide();
 					} else
 						argument.position = typeof argument.position === 'number' ? argument.position : matrix[argument.target].length;
@@ -1862,8 +1919,8 @@
 					_dragAndDropManager.onCardDrop(createCardDom, typeof argument.notify === 'boolean' ? argument.notify : false);
 					break;
 				case 'destroy':
-					if (typeof settings.onDestroy === 'function')
-						settings.onDestroy();
+					if (typeof SETTINGS.onDestroy === 'function')
+						SETTINGS.onDestroy();
 					KANBAN.removeClass('kanban-initialized');
 					KANBAN.removeData();
 					KANBAN.empty().html('');
