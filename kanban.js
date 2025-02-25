@@ -5,7 +5,7 @@
 		return this.charAt(0).toUpperCase() + this.slice(1);
 	};
 
-	Array.prototype.last = function() {
+	Array.prototype.last = function () {
 		if (this.length === 0)
 			return undefined;
 		return this[this.length - 1];
@@ -18,7 +18,7 @@
 	var _currentLanguage;
 	var _dragAndDropManager = {
 		prependOnly: false,
-		onCardDrop: function (self,  notify) {
+		onCardDrop: function (self, notify) {
 			var i;
 			if (typeof notify !== 'boolean')
 				notify = true;
@@ -143,20 +143,18 @@
 		return index;
 	}
 
-	function moveCard(Context, cardDom, to, at) {
-		var listCardContainerDom = Context.find('.kanban-list-wrapper[data-column="' + to + '"] .kanban-list-cards');
+	function moveCard(cardDom, to, at) {
+		var listCardContainerDom = KANBAN.find('.kanban-list-wrapper[data-column="' + to + '"] .kanban-list-cards');
 		at = typeof at !== 'number' ? listCardContainerDom.children().length - 1 : at;
 		var childrenAtPosition = listCardContainerDom.children().eq(at);
 		var cardPosition = listCardContainerDom.children().index(cardDom);
 		if (childrenAtPosition.length) {
-			if (cardPosition >= 0 && cardPosition < at) {
+			if (cardPosition >= 0 && cardPosition < at)
 				childrenAtPosition.after(cardDom);
-			} else {
+			else
 				childrenAtPosition.before(cardDom);
-			}
-		} else {
+		} else
 			listCardContainerDom.append(cardDom);
-		}
 	}
 
 	function addCardClicked() {
@@ -185,7 +183,7 @@
 					if (typeof SETTINGS.onCardUpdate === 'function') {
 						SETTINGS.onCardUpdate({ oldValue: oldValue, newValue: newValue });
 					}
-					buildCards(KANBAN, matrix);
+					buildCards(matrix);
 					bindDragAndDropEvents(KANBAN, _dragAndDropManager);
 					if (typeof SETTINGS.onRenderDone === 'function') {
 						SETTINGS.onRenderDone();
@@ -221,11 +219,11 @@
 					});
 					if (index >= 0) {
 						cardsContainerDom.append(buildCard(newData));
-						update_action_count.call(KANBAN, column, filter);
+						update_action_count(column, filter);
 					}
 					if (typeof SETTINGS.onCardInsert === 'function')
 						SETTINGS.onCardInsert(newData);
-					bindDragAndDropEvents(KANBAN, _dragAndDropManager);
+					bindDragAndDropEvents(_dragAndDropManager);
 					if (typeof SETTINGS.onRenderDone === 'function')
 						SETTINGS.onRenderDone();
 					break;
@@ -313,13 +311,13 @@
 		});
 	}
 
-	function mediaQueryAndMaxWidth(container, width) {
-		if (container.outerWidth() <= width) {
-			container.find('.kanban-list-card-edit, .kanban-list-card-switch').css({
+	function mediaQueryAndMaxWidth(width) {
+		if (KANBAN.outerWidth() <= width) {
+			KANBAN.find('.kanban-list-card-edit, .kanban-list-card-switch').css({
 				'display': 'inline-block'
 			});
 		} else {
-			container.find('.kanban-list-card-edit, .kanban-list-card-switch').css('display', '');
+			KANBAN.find('.kanban-list-card-edit, .kanban-list-card-switch').css('display', '');
 		}
 	}
 
@@ -356,8 +354,8 @@
 		const wrapperDom = KANBAN.find('#kanban-wrapper-' + column);
 		wrapperDom.prop("draggable", false);
 		const composer_dom = $("<div>")
-								.addClass("card-composer")
-								.append(`
+			.addClass("card-composer")
+			.append(`
 									<div class="list-card js-composer">
 										<div class="list-card-details u-clearfix">
 											<ul class="mention-container"></ul>
@@ -383,7 +381,7 @@
 					return true;
 				const item_dom = $("<li>", {
 					class: "mention-filter-list-item",
-					data: can_contribute
+					data: can_contribute,
 				}).append(`
 					<div class="mention-filter-image">
 						<img src="${can_contribute.image}" alt="${can_contribute.alias}" />
@@ -393,7 +391,7 @@
 						<span class="mention-filter-alias">${can_contribute.alias}</span>
 					</div>
 				`);
-				item_dom.on("mousedown", function() {
+				item_dom.on("mousedown", function () {
 					composer_dom.find(".mention-container").append(build_contributor_mention($(this).data()));
 					mention_filter_dom.empty();
 					let new_value = composer_dom.find(".list-card-composer-textarea.js-card-title").val().split(' ');
@@ -403,42 +401,42 @@
 				});
 				mention_filter_dom.append(item_dom);
 			});
-			composer_dom.find(".list-card-composer-textarea.js-card-title").off("input").on("input", function() {
+			composer_dom.find(".list-card-composer-textarea.js-card-title").off("input").on("input", function () {
 				const self = $(this);
 				const split = self.val().split(' ');
 				let word;
 
 				if (split.length > 0 && (word = split.pop()).match(/^@[a-zA-Z]{0,1}[a-zA-Z0-9]*$/)) {
 					const name_regex = RegExp(word.slice(1), 'i');
-					mention_filter_dom.find(".mention-filter-list-item").each(function() {
+					mention_filter_dom.find(".mention-filter-list-item").each(function () {
 						const self = $(this);
 						const data = self.data();
 						if (data.name.match(name_regex) || data.alias.match(name_regex) || word === '@') {
 							self.css("display", '');
-							self.find(".mention-filter-name").html(data.name.replace(name_regex, function(match) {
+							self.find(".mention-filter-name").html(data.name.replace(name_regex, function (match) {
 								return `<span class="mention-match">${match}</span>`;
 							}));
-							self.find(".mention-filter-alias").html(data.alias.replace(name_regex, function(match) {
+							self.find(".mention-filter-alias").html(data.alias.replace(name_regex, function (match) {
 								return `<span class="mention-match">${match}</span>`;
 							}));
 						} else
 							self.hide();
 					});
 				} else if (split.length > 0 && (word = split.last()).match(/^@[a-zA-Z]{1,}[a-zA-Z0-9]*$/)) {
-					mention_filter_dom.find(".mention-filter-list-item").each(function() {
+					mention_filter_dom.find(".mention-filter-list-item").each(function () {
 						const self = $(this);
-						const data = self.data();
+						const data = $.extend({}, self.data());
 						if (data.alias === word.slice(1)) {
-							composer_dom.find(".mention-container").append(build_contributor_mention($(this).data()));
+							composer_dom.find(".mention-container").append(build_contributor_mention(data));
 							split.pop();
 							const new_value = split.join(' ')
 							composer_dom.find(".list-card-composer-textarea.js-card-title").val(new_value);
 						}
-						mention_filter_dom.empty();
 					});
-				} else 
 					mention_filter_dom.empty();
-			})
+				} else
+					mention_filter_dom.empty();
+			}).trigger("input");
 		}
 		composer_dom.on("input", ".list-card-composer-textarea.js-card-title", e => {
 			const split = $(e.target).val().split(' ');
@@ -482,11 +480,11 @@
 		return composer_dom;
 	}
 
-	function getDataFromCard(Context, cardDom) {
-		var filter = Context.data('filter');
+	function getDataFromCard(cardDom) {
+		var filter = KANBAN.data('filter');
 		var column = cardDom.data('column');
 		var index = cardDom.parents('.kanban-list-cards').find('.kanban-list-card-detail').index(cardDom);
-		var matrix = Context.data('matrix');
+		var matrix = KANBAN.data('matrix');
 		var filteredMatrix = filterMatrixBy(matrix, filter);
 		return filteredMatrix[column][index];
 	}
@@ -499,38 +497,38 @@
 		});
 		const container_dom = $('<div>')
 			.addClass('contributor-container');
-		$.each(contributorsList, function (_,contributor) {
+		$.each(contributorsList, function (_, contributor) {
 			var dataList = typeof contributor.data === 'object' ? contributor.data : {};
-				const data = {
-					"data-index": _,
-				};
-				$.each(dataList, function (key, value) {
-					data[`data-${key}`] = value;
-				});
-				function handle_remove_contributor(e) {
-					e.stopPropagation();
-					const self = $(this);
-					const to_delete = $.extend({}, contributor);
-					const matrix = KANBAN.data("matrix");
+			const data = {
+				"data-index": _,
+			};
+			$.each(dataList, function (key, value) {
+				data[`data-${key}`] = value;
+			});
+			function handle_remove_contributor(e) {
+				e.stopPropagation();
+				const self = $(this);
+				const to_delete = $.extend({}, contributor);
+				const matrix = KANBAN.data("matrix");
 
-					datum.contributors.splice(self.data("index"), 1);
-					card_dom.find(".contributors-preview")
-						.html(`${datum.contributors.length} <span class="fa fa-users"></span>`);
-					container_dom.remove();
-					card_dom.append(buildContributorsDropdown.call(card_dom, datum.contributors));
-					matrix[datum.header] = matrix[datum.header].map(vector => {
-						if (vector.instanceIdentity !== datum.instanceIdentity)
-							return vector;
-						return datum;
-					});
-					KANBAN.data("matrix", matrix);
-					if (typeof SETTINGS.onContributorRemove === "function")
-						SETTINGS.onContributorRemove(to_delete);
-				}
-				const contributor_info =  $("<div>", {
-					class: "contributor-info",
-					...data
-				})
+				datum.contributors.splice(self.data("index"), 1);
+				card_dom.find(".contributors-preview")
+					.html(`${datum.contributors.length} <span class="fa fa-users"></span>`);
+				container_dom.remove();
+				card_dom.append(buildContributorsDropdown.call(card_dom, datum.contributors));
+				matrix[datum.header] = matrix[datum.header].map(vector => {
+					if (vector.instanceIdentity !== datum.instanceIdentity)
+						return vector;
+					return datum;
+				});
+				KANBAN.data("matrix", matrix);
+				if (typeof SETTINGS.onContributorRemove === "function")
+					SETTINGS.onContributorRemove(to_delete);
+			}
+			const contributor_info = $("<div>", {
+				class: "contributor-info",
+				...data
+			})
 				.append(`
 					<div class="contributor-image">
 						<img src="${contributor.image}" alt="${contributor.name}" />
@@ -543,7 +541,7 @@
 						html: `<i class="fa fa-times"></i>`
 					}).on("click", handle_remove_contributor)
 				)
-				.on("click", function() {
+				.on("click", function () {
 					const self = $(this);
 
 					if (typeof SETTINGS.onContributorClick === "function")
@@ -593,7 +591,7 @@
 			listCardDetailContainer.addClass('column-referer');
 		if (data.html)
 			listCardDetailText.html(data.title);
-		else 
+		else
 			listCardDetailText.text(data.title);
 		if (SETTINGS.canEditCard && data.editable)
 			cardActionDom.append(listCardDetailEdit);
@@ -737,40 +735,37 @@
 	function duplicateCard(cardDom, options) {
 		var defaultOptions = {
 			bindDragAndDropEvent: false
-		}
-		if (typeof options !== 'object') {
+		};
+		if (typeof options !== 'object')
 			options = defaultOptions;
-		} else {
+		else
 			options = $.extend(true, {}, defaultOptions, options);
-		}
-		var context = cardDom.parents('.kanban-initialized');
-		var data = getDataFromCard(context, cardDom);
+		var data = getDataFromCard(cardDom);
 		var copy = $.extend({}, data);
 		copy.id = 'Column' + Date.now();
 		copy.position = cardDom.parents('.kanban-list-cards').find('.kanban-list-card-detail').index(cardDom) + 1;
-		addData(context, [copy]);
+		addData([copy]);
 		var createdCard = buildCard(copy);
 		cardDom.after(createdCard);
-		if (options.bindDragAndDropEvent) {
-			bindDragAndDropEvents(context, _dragAndDropManager);
-		}
+		if (options.bindDragAndDropEvent)
+			bindDragAndDropEvents(_dragAndDropManager);
 		return createdCard;
 	}
 
 	function update_action_count(column, filter) {
-		var matrix, self = this;
+		var matrix;
 		column = typeof column === 'undefined' ? null : column;
 		filter = typeof filter === 'object' && filter ? filter : {};
-		matrix = filterMatrixBy(this.data('matrix'), filter);
+		matrix = filterMatrixBy(KANBAN.data('matrix'), filter);
 		if (!column)
 			$.each(matrix, function (col, vect) {
-				self.find('.card-counter[data-column="' + col + '"]').text(vect.length);
+				KANBAN.find('.card-counter[data-column="' + col + '"]').text(vect.length);
 			});
 		else
-			self.find('.card-counter[data-column="' + column + '"]').text(matrix[column].length);
+		KANBAN.find('.card-counter[data-column="' + column + '"]').text(matrix[column].length);
 	}
 
-	function bindDragAndDropEvents(Context, events) {
+	function bindDragAndDropEvents(events) {
 		var diffX = 0,
 			diffY = 0,
 			outerWidth = 0,
@@ -786,7 +781,7 @@
 		function externalDropCard(event) {
 			var draggingElement = document.querySelector('.kanban-list-card-detail.dragging');
 			var targetDom = $(event.target);
-			Context.find('.kanban-list-wrapper').attr('draggable', SETTINGS.canMoveColumn.toString());
+			KANBAN.find('.kanban-list-wrapper').attr('draggable', SETTINGS.canMoveColumn.toString());
 			if (draggingElement !== null && (targetDom.hasClass('kanban-list-card-detail') && !targetDom.get(0).isSameNode(draggingElement) || targetDom.parents('.kanban-list-card-detail').length && !targetDom.parents('.kanban-list-card-detail').get(0).isSameNode(draggingElement))) {
 				mouseup(draggingElement);
 			}
@@ -803,7 +798,7 @@
 				draggingElement = draggingElement !== null ? draggingElement : ($(event.target).hasClass('kanban-list-card-detail') ? event.target : $(event.target).parents('.kanban-list-card-detail').get(0))
 				mousemove(coordinates, draggingElement);
 			}
-			if (!isPointerInsideOf(Context.get(0), coordinates))
+			if (!isPointerInsideOf(KANBAN.get(0), coordinates))
 				mouseup(draggingElement);
 		}
 
@@ -812,7 +807,7 @@
 				return false;
 			event.stopPropagation();
 			var self = $(this);
-			Context.find('.kanban-list-wrapper').attr('draggable', 'false');
+			KANBAN.find('.kanban-list-wrapper').attr('draggable', 'false');
 			// check selected elelemnt
 			var prohibedClasses = ['contributors-preview', 'card-action', 'contributor-container'];
 			var filteredTarget = prohibedClasses.filter(function (prohibedClass) {
@@ -839,7 +834,7 @@
 					mouseup(this);
 				});
 			}
-			Context.on('mouseup', externalDropCard);
+			KANBAN.on('mouseup', externalDropCard);
 			$(document).on('mousemove', movingCardDrop);
 		}
 
@@ -872,7 +867,7 @@
 					height: outerHeight
 				});
 				self.detach();
-				Context.append(self);
+				KANBAN.append(self);
 				dragover = true;
 				checkDragOver({ x: bcr.x, y: bcr.y });
 			}
@@ -887,14 +882,14 @@
 
 		function mouseup(element) {
 			var self = $(element);
-			Context.find('.kanban-list-wrapper').attr('draggable', SETTINGS.canMoveColumn.toString());
+			KANBAN.find('.kanban-list-wrapper').attr('draggable', SETTINGS.canMoveColumn.toString());
 			self.off('mouseup');
-			Context.off('mouseup', externalDropCard);
+			KANBAN.off('mouseup', externalDropCard);
 			$(document).off('mousemove', movingCardDrop);
 
 			if (!dragstart) {
 				if (cardCopy !== null) {
-					deleteData(Context, cardCopy.data('datum').id);
+					deleteData(cardCopy.data('datum').id);
 					cardCopy.remove();
 				}
 				initValues();
@@ -903,7 +898,7 @@
 			dragstart = false;
 			if (!dragover) {
 				if (cardCopy !== null) {
-					deleteData(Context, cardCopy.data('datum').id);
+					deleteData(cardCopy.data('datum').id);
 					cardCopy.remove();
 				}
 				initValues();
@@ -911,7 +906,7 @@
 			}
 			dragover = false;
 			var dragMarker = _dragSubstituteDom.is(':visible') ? _dragSubstituteDom : originalCard;
-			var cardColumnReferencer = Context.find('.kanban-list-card-detail.column-referer.hovered');
+			var cardColumnReferencer = KANBAN.find('.kanban-list-card-detail.column-referer.hovered');
 			cardColumnReferencer.removeClass('hovered');
 			var bcr = dragMarker.get(0).getBoundingClientRect();
 
@@ -919,7 +914,7 @@
 				self.removeClass('dragging').css({ position: '', top: '', left: '', width: '', height: '', transform: '' });
 				self.hide(250, function () {
 					var referencerData = cardColumnReferencer.data('datum');
-					moveCard(Context, self, referencerData.columnReference, cardColumnReferencer.parents('.kanban-list-cards').children().length);
+					moveCard(self, referencerData.columnReference, cardColumnReferencer.parents('.kanban-list-cards').children().length);
 					self.show();
 					_dragAndDropManager.onCardDrop(self);
 					initValues();
@@ -936,14 +931,13 @@
 						dragMarker.after(self);
 						_dragSubstituteDom.detach();
 						if (dragMarker === _dragSubstituteDom) {
-							if (typeof events.onCardDrop === 'function') {
-								events.onCardDrop(self, Context);
-							}
+							if (typeof events.onCardDrop === 'function')
+								events.onCardDrop(self);
 						} else {
-							deleteData(Context, { id: self.data('datum').id });
+							deleteData({ id: self.data('datum').id });
 							self.remove();
 						}
-						bindDragAndDropEvents(Context, _dragAndDropManager);
+						bindDragAndDropEvents(_dragAndDropManager);
 						initValues();
 					}
 				});
@@ -1000,7 +994,7 @@
 		});
 	}
 
-	function buildCardMoveContext(Context, headers, selectedData, matrixData) {
+	function buildCardMoveContext(headers, selectedData, matrixData) {
 		function shouldCopy(column) {
 			return SETTINGS.copyWhenDragFrom.includes(column);
 		}
@@ -1017,7 +1011,7 @@
 		var moveCardContext = $('<div>', {
 			'class': 'kanban-move-card'
 		});
-		moveCardContext.empty().html(printf('' +
+		moveCardKANBAN.empty().html(printf('' +
 			'<h2 class="kanban-card-move-header" {{contextHeader}}</h2>' +
 			'<label class="kanban-card-move-label">{{columnLabel}}</label>' +
 			'<div class="select">' +
@@ -1056,9 +1050,9 @@
 			buttonText: shouldCopy(selectedData.header) ? translate('copy').ucfirst() : translate('move').ucfirst()
 		}));
 
-		moveCardContext.on('change', '[name=list-map]', function () {
+		moveCardKANBAN.on('change', '[name=list-map]', function () {
 			var newLength = matrixData[this.value].length;
-			moveCardContext.find('[name=position-map]').empty().html(Array.from({ length: this.value === selectedData.header ? newLength : newLength + 1 }, function (_, index) {
+			moveCardKANBAN.find('[name=position-map]').empty().html(Array.from({ length: this.value === selectedData.header ? newLength : newLength + 1 }, function (_, index) {
 				return index;
 			}).map(function (builtArrayIndex) {
 				var that = this;
@@ -1073,9 +1067,9 @@
 		return moveCardContext;
 	}
 
-	function addColumns(Context, headers) {
+	function addColumns(headers) {
 		$.each(headers, function (_, oneHeader) {
-			var matrix = $.extend({}, Context.data('matrix'));
+			var matrix = $.extend({}, KANBAN.data('matrix'));
 
 			function findHeader(oneHeaderFind) {
 				return oneHeaderFind.id === oneHeader.id;
@@ -1087,11 +1081,11 @@
 			if (typeof SETTINGS.headers.find(findHeader) === 'undefined') {
 				SETTINGS.headers.push(oneHeader);
 			}
-			Context.data('matrix', matrix);
+			KANBAN.data('matrix', matrix);
 		});
 	}
 
-	function addData(Context, data) {
+	function addData(data) {
 		var compiledDataList = data.filter(function (datumFilter) {
 			return typeof datumFilter.id !== 'undefined' && typeof datumFilter.header !== 'undefined';
 		}).map(function (datumMap) {
@@ -1108,7 +1102,7 @@
 			return $.extend(true, {}, defaultDadum, datumMap);
 		});
 		$.each(compiledDataList, function (_, dataLine) {
-			var matrix = $.extend({}, Context.data('matrix'));
+			var matrix = $.extend({}, KANBAN.data('matrix'));
 			var index;
 			if (typeof matrix[dataLine.header] === 'undefined' || !Array.isArray(matrix[dataLine.header]))
 				matrix[dataLine.header] = [];
@@ -1134,12 +1128,12 @@
 				} else
 					matrix[dataLine.header].push(last, dataLine);
 			}
-			Context.data('matrix', matrix);
+			KANBAN.data('matrix', matrix);
 		});
 	}
 
-	function deleteData(Context, coordinates) {
-		var matrix = $.extend({}, Context.data('matrix'));
+	function deleteData(coordinates) {
+		var matrix = $.extend({}, KANBAN.data('matrix'));
 		var column;
 		var id = null, index;
 		if (typeof coordinates === 'object' && coordinates) {
@@ -1172,24 +1166,24 @@
 				}
 			});
 		}
-		Context.data('matrix', matrix);
+		KANBAN.data('matrix', matrix);
 		return (id);
 	}
 
-	function buildColumns(Context) {
-		var matrix = Context.data('matrix');
-		var filter = Context.data('filter');
-		var kanbanContainerDom = Context.find('.kanban-container');
+	function buildColumns() {
+		var matrix = KANBAN.data('matrix');
+		var filter = KANBAN.data('filter');
+		var kanbanContainerDom = KANBAN.find('.kanban-container');
 		matrix = filterMatrixBy(matrix, filter);
 		$.each(matrix, function (oneHeaderKey) {
-			if (Context.find('kanban-list-wrapper[data-column="' + oneHeaderKey + '"]').length > 0) {
+			if (KANBAN.find('kanban-list-wrapper[data-column="' + oneHeaderKey + '"]').length > 0) {
 				return false;
 			}
 			var oneHeader = SETTINGS.headers.find(function (oneHeaderFind) { return oneHeaderFind.id === oneHeaderKey; });
 			if (typeof oneHeader === 'undefined')
 				return (true);
 			oneHeader.menus = typeof oneHeader.menus !== 'object' || !Array.isArray(oneHeader.menus) ? [] : oneHeader.menus;
-			kanbanContainerDom.append(buildColumn(Context, oneHeader));
+			kanbanContainerDom.append(buildColumn(oneHeader));
 		});
 		if (SETTINGS.canAddColumn) {
 			var kanbanListWrapperDom = $('<div>', {
@@ -1205,7 +1199,7 @@
 		}
 	}
 
-	function buildColumn(Context, header, options) {
+	function buildColumn(header, options) {
 		var defaultOptions = {
 			createMode: false
 		};
@@ -1285,8 +1279,7 @@
 	}
 
 	function createColumnAfter(wrapperDom, name) {
-		var context = wrapperDom.parents('.kanban-initialized');
-		var oldMatrix = context.data('matrix');
+		var oldMatrix = KANBAN.data('matrix');
 		var newMatrix = {};
 		var newHeader = {
 			id: 'Column' + Date.now(),
@@ -1294,69 +1287,67 @@
 			editable: true,
 			menus: []
 		};
-		var newColumn = buildColumn(context, newHeader);
-		var wrapperIndex = context.find('.kanban-list-wrapper').index(wrapperDom);
+		var newColumn = buildColumn(newHeader);
+		var wrapperIndex = KANBAN.find('.kanban-list-wrapper').index(wrapperDom);
 		SETTINGS.headers.splice(wrapperIndex + 1, 0, newHeader);
 		$.each(SETTINGS.headers, function (_, header) {
 			newMatrix[header.id] = typeof oldMatrix[header.id] === 'undefined' ? [] : oldMatrix[header.id];
 		});
-		context.data('matrix', newMatrix);
+		KANBAN.data('matrix', newMatrix);
 		wrapperDom.after(newColumn);
 		newColumn.find('.column-header-text').trigger('click');
-		if (typeof SETTINGS.onColumnInsert === 'function') {
-			SETTINGS.onColumnInsert.call(context, newHeader);
-		}
+		if (typeof SETTINGS.onColumnInsert === 'function')
+			SETTINGS.onColumnInsert.call(KANBAN, newHeader);
 	}
 
-	function addColumnAfter(wrapperDom, newHeader){
-		var context = wrapperDom.parents('.kanban-initialized');
-		var oldMatrix = context.data('matrix');
+	function addColumnAfter(wrapperDom, newHeader) {
+		var oldMatrix = KANBAN.data('matrix');
 		var newMatrix = {};
-		var newColumn = buildColumn(context, newHeader);
-		var wrapperIndex = context.find('.kanban-list-wrapper').index(wrapperDom);
+		var newColumn = buildColumn(newHeader);
+		var wrapperIndex = KANBAN.find('.kanban-list-wrapper').index(wrapperDom);
 		SETTINGS.headers.splice(wrapperIndex + 1, 0, newHeader);
 		$.each(SETTINGS.headers, function (_, header) {
 			newMatrix[header.id] = typeof oldMatrix[header.id] === 'undefined' ? [] : oldMatrix[header.id];
 		});
-		context.data('matrix', newMatrix);
+		KANBAN.data('matrix', newMatrix);
 		wrapperDom.after(newColumn);
 		newColumn.find('.column-header-text').trigger('click');
 		if (typeof SETTINGS.onColumnInsert === 'function') {
-			SETTINGS.onColumnInsert.call(context, newHeader);
+			SETTINGS.onColumnInsert.call(KANBAN, newHeader);
 		}
 	}
 
-	function buildCards(Context, matrix) {
-		if (typeof matrix === 'undefined') { matrix = $.extend({}, Context.data('matrix')); }
+	function buildCards(matrix) {
+		if (typeof matrix === 'undefined') { matrix = $.extend({}, KANBAN.data('matrix')); }
 		$.each(matrix, function (column, oneMatrixData) {
-			var listCardDom = Context.find('#kanban-wrapper-' + column + ' .kanban-list-cards');
-			Context.find('.kanban-list-header .card-counter[data-column="' + column + '"]').text(oneMatrixData.length);
+			var listCardDom = KANBAN.find('#kanban-wrapper-' + column + ' .kanban-list-cards');
+			KANBAN.find('.kanban-list-header .card-counter[data-column="' + column + '"]').text(oneMatrixData.length);
 			listCardDom.empty();
 			$.each(oneMatrixData, function (_, oneMatrixDatum) {
 				listCardDom.append(buildCard(oneMatrixDatum));
 			});
 		});
-		mediaQueryAndMaxWidth(Context, 770);
+		mediaQueryAndMaxWidth(770);
 	}
 
-	function loadKanban(Context) {
+	function loadKanban() {
 		_dragAndDropManager.prependOnly = SETTINGS.prependOnly;
 		// Traitement des entêtes
-		addColumns(Context, SETTINGS.headers);
+		addColumns(SETTINGS.headers);
 
 		// Reordonner la matrice
-		addData(Context, SETTINGS.data);
+		addData(SETTINGS.data);
 		// remove all columns
-		Context.find('.kanban-container').empty().html('');
+		KANBAN.find('.kanban-container').empty().html('');
 		// build columns
-		buildColumns(Context);
-		buildCards(Context);
+		buildColumns();
+		buildCards();
 
-		bindDragAndDropEvents(Context, _dragAndDropManager);
+		bindDragAndDropEvents(_dragAndDropManager);
 
 		// Événements
-		Context.off('mouseover').off('mouseout').off('click').off('keydown');
-		Context.on('mouseover', '.kanban-list-card-detail', function () {
+		KANBAN.off('mouseover').off('mouseout').off('click').off('keydown');
+		KANBAN.on('mouseover', '.kanban-list-card-detail', function () {
 			$(this).addClass('active-card');
 		}).on('mouseout', '.kanban-list-card-detail', function () {
 			$(this).removeClass('active-card');
@@ -1376,9 +1367,8 @@
 					SETTINGS.onInsertCardAction(column);
 				if (!SETTINGS.canAddCard)
 					return (true);
-				wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(Context, column)).scrollTop(0);
+				wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(column)).scrollTop(0);
 				wrapperDom.find('.js-card-title').focus();
-				wrapperDom.find('.js-add-card').data('context', Context);
 			}
 		}).on('click', '.kanban-list-card-detail:not(.dragging)', function (event) {
 			event.stopPropagation();
@@ -1394,10 +1384,10 @@
 			event.stopPropagation();
 			var self = $(this);
 			var columnId = self.data('column');
-			var columnKanbanDoms = Context.find('.kanban-list-wrapper[data-column="' + columnId + '"] .kanban-list-card-detail');
+			var columnKanbanDoms = KANBAN.find('.kanban-list-wrapper[data-column="' + columnId + '"] .kanban-list-card-detail');
 			var parentCardDom = self.parents('.kanban-list-card-detail');
 			var cardIndex = columnKanbanDoms.index(parentCardDom);
-			var data = getDataFromCard(Context, parentCardDom);
+			var data = getDataFromCard(parentCardDom);
 			if (typeof SETTINGS.onEditCardAction === 'function') {
 				SETTINGS.onEditCardAction.call(this, data);
 			}
@@ -1434,18 +1424,18 @@
 			var columnId = self.data('column');
 			var columnKanbanDoms = $('.kanban-list-card-switch[data-column="' + columnId + '"]');
 			var cardIndex = columnKanbanDoms.index(self);
-			var matrix = Context.data('matrix');
-			var filter = Context.data('filter');
+			var matrix = KANBAN.data('matrix');
+			var filter = KANBAN.data('filter');
 			matrix = filterMatrixBy(matrix, filter);
 			var data = matrix[columnId][cardIndex];
 			if (typeof SETTINGS.onMoveCardAction === 'function') {
 				SETTINGS.onMoveCardAction(data);
 			}
 			var overlayDom = $('.kanban-overlay');
-			var scrollLeft = Context.scrollLeft();
-			Context.css('overflow-x', 'hidden');
-			Context.scrollLeft(scrollLeft);
-			var moveContextDom = buildCardMoveContext(Context, SETTINGS.headers, data, matrix)
+			var scrollLeft = KANBAN.scrollLeft();
+			KANBAN.css('overflow-x', 'hidden');
+			KANBAN.scrollLeft(scrollLeft);
+			var moveContextDom = buildCardMoveContext(SETTINGS.headers, data, matrix)
 			overlayDom.append(moveContextDom).addClass('active');
 			moveContextDom.on('click', '.js-submit', function () {
 				var cardDom = self.parents('.kanban-list-card-detail');
@@ -1454,7 +1444,7 @@
 				if (SETTINGS.copyWhenDragFrom.includes(cardDom.data('datum').header)) {
 					cardDom = duplicateCard(cardDom)
 				}
-				moveCard(Context, cardDom, targetColumn, targetLine);
+				moveCard(cardDom, targetColumn, targetLine);
 				_dragAndDropManager.onCardDrop(cardDom);
 				overlayDom.removeClass('active').empty();
 			});
@@ -1479,184 +1469,183 @@
 			if (typeof SETTINGS.onInsertCardAction === 'function')
 				SETTINGS.onInsertCardAction(columnId);
 		}).on('click', '.js-add-card', addCardClicked)
-		.on('click', '.kanban-action-dropdown .dropdown-trigger', function () {
-			$(this).next('.dropdown-list').toggleClass('open');
-		}).on('click', '.kanban-action-dropdown .dropdown-list.open .dropdown-item', function () {
-			var self = $(this);
-			var wrapperDom, headerEditorDom;
-			switch (self.data('target')) {
-				case 'add-card':
-					wrapperDom = self.parents('.kanban-list-wrapper');
-					var column = wrapperDom.data('column');
-					wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(Context, column)).scrollTop(0);
-					wrapperDom.find('.js-card-title').focus();
-					wrapperDom.find('.js-add-card').data('context', Context);
-					if (typeof SETTINGS.onInsertCardAction === 'function') {
-						SETTINGS.onInsertCardAction(column);
-					}
-					break;
-				case 'column-rename':
-					wrapperDom = self.parents('.kanban-list-wrapper');
-					if (typeof SETTINGS.onEditHeaderAction === 'function') {
-						SETTINGS.onEditHeaderAction(wrapperDom.data('column'));
-					}
-					if (!SETTINGS.canEditHeader || !wrapperDom.find('.kanban-list-header').data('editable')) {
+			.on('click', '.kanban-action-dropdown .dropdown-trigger', function () {
+				$(this).next('.dropdown-list').toggleClass('open');
+			}).on('click', '.kanban-action-dropdown .dropdown-list.open .dropdown-item', function () {
+				var self = $(this);
+				var wrapperDom, headerEditorDom;
+				switch (self.data('target')) {
+					case 'add-card':
+						wrapperDom = self.parents('.kanban-list-wrapper');
+						var column = wrapperDom.data('column');
+						wrapperDom.find('.kanban-list-cards').prepend(buildNewCardInput(column)).scrollTop(0);
+						wrapperDom.find('.js-card-title').focus();
+						if (typeof SETTINGS.onInsertCardAction === 'function') {
+							SETTINGS.onInsertCardAction(column);
+						}
 						break;
-					}
-					headerEditorDom = wrapperDom.find('.column-header-editor');
-					wrapperDom.find('.column-header-text').hide();
-					headerEditorDom.css('display', 'inline-block');
-					headerEditorDom.focus();
-					headerEditorDom.select();
-					break;
-				case 'add-column':
-					wrapperDom = self.parents('.kanban-list-wrapper');
-					headerEditorDom = wrapperDom.find('.column-header-editor');
-					createColumnAfter(wrapperDom);
-					break;
-				case 'custom-menu':
-					var header = self.data('header');
-					if (typeof self.data('action') === 'string' && typeof SETTINGS[self.data('action')] === 'function') {
-						SETTINGS[self.data('action')](header);
-					}
-					break;
-			}
-			self.parents('.dropdown-list').removeClass('open');
-		}).on('click', '.kanban-new-column', function (event) {
-			event.preventDefault();
-			var wrapperDom = $(this).parents('.kanban-list-wrapper').prev('.kanban-list-wrapper');
-			createColumnAfter(wrapperDom);
-		}).on('click', '.column-header-text', function () {
-			Context.trigger('click');
-			var self = $(this);
-			var wrapperDom = self.parents('.kanban-list-wrapper');
-			if (typeof SETTINGS.onEditHeaderAction === 'function') {
-				SETTINGS.onEditHeaderAction(wrapperDom.data('column'));
-			}
-			if (!SETTINGS.canEditHeader || !self.parents('.kanban-list-header').data('editable')) {
-				return true;
-			}
-			var headerEditorDom = self.next('.column-header-editor');
-			self.hide();
-			headerEditorDom.css('display', 'inline-block');
-			headerEditorDom.focus();
-			headerEditorDom.select();
-		}).on('click', '.contributor-info', function () {
-			var self = $(this);
-			if (typeof SETTINGS.onContributorClick === 'function') {
-				SETTINGS.onContributorClick(self.data());
-			}
-		}).on('click', function (event) {
-			var activeDropdownDomList = Context.find('.dropdown-list.open');
-			var visibleHeaderEditor = Context.find('.column-header-editor').filter(function () {
-				return $(this).is(':visible');
-			});
-			if (activeDropdownDomList.length && $(event.target).parents('.kanban-action-dropdown').length === 0) {
-				activeDropdownDomList.removeClass('open');
-			}
-			var cancelWhenClass = ['column-header-text', 'column-header-editor', 'dropdown-item', 'kanban-new-column'];
-			if (visibleHeaderEditor.length && cancelWhenClass.every(function (oneClass) { return !$(event.target).hasClass(oneClass) })) {
-				var column = visibleHeaderEditor.parents('.kanban-list-wrapper').data('column').toString();
-				var headerIndex = SETTINGS.headers.findIndex(function (oneHeader) {
-					return oneHeader.id === column;
-				});
-				SETTINGS.headers[headerIndex].label = visibleHeaderEditor.val(); 
-				var labelDom = visibleHeaderEditor.prev('.column-header-text');
-				var values = { old: labelDom.text(), new: visibleHeaderEditor.val() };
-				visibleHeaderEditor.css('display', '');
-				labelDom.text(visibleHeaderEditor.val()).css('display', '');
-				if (typeof SETTINGS.onHeaderChange === 'function')
-					SETTINGS.onHeaderChange({ column: column, values: values });
-			}
-		}).on('keydown', '.card-composer', function (event) {
-			if (event.originalEvent.key === 'Enter') {
+					case 'column-rename':
+						wrapperDom = self.parents('.kanban-list-wrapper');
+						if (typeof SETTINGS.onEditHeaderAction === 'function') {
+							SETTINGS.onEditHeaderAction(wrapperDom.data('column'));
+						}
+						if (!SETTINGS.canEditHeader || !wrapperDom.find('.kanban-list-header').data('editable')) {
+							break;
+						}
+						headerEditorDom = wrapperDom.find('.column-header-editor');
+						wrapperDom.find('.column-header-text').hide();
+						headerEditorDom.css('display', 'inline-block');
+						headerEditorDom.focus();
+						headerEditorDom.select();
+						break;
+					case 'add-column':
+						wrapperDom = self.parents('.kanban-list-wrapper');
+						headerEditorDom = wrapperDom.find('.column-header-editor');
+						createColumnAfter(wrapperDom);
+						break;
+					case 'custom-menu':
+						var header = self.data('header');
+						if (typeof self.data('action') === 'string' && typeof SETTINGS[self.data('action')] === 'function') {
+							SETTINGS[self.data('action')](header);
+						}
+						break;
+				}
+				self.parents('.dropdown-list').removeClass('open');
+			}).on('click', '.kanban-new-column', function (event) {
 				event.preventDefault();
-				$(this).find('.js-add-card').trigger('click');
-			}
-		}).on('keydown', '.column-header-editor', function (event) {
-			if (event.originalEvent.key === 'Enter') {
-				Context.trigger('click');
-			}
-		}).on('mousedown', '.kanban-list-wrapper:not(.js-add-column)', function (event) {
-			var bcr = this.getBoundingClientRect();
-			diffX = event.clientX - bcr.x;
-			diffY = event.clientY - bcr.y;
-		}).on('dragstart', '.kanban-list-wrapper:not(.js-add-column)', function (event) {
-			var self = $(this);
-			event.stopPropagation();
-			var bcr = this.getBoundingClientRect();
-			outerWidth = self.outerWidth();
-			outerHeight = self.find('.kanban-list-content').outerHeight();
-			width = self.width();
-			height = self.height();
-			dragstartColumn = true;
-
-			columnSubstitute.css({
-				minWidth: outerWidth - 4,
-				width: outerWidth - 4,
-				height: outerHeight - 4
-			});
-			self.before(columnSubstitute);
-			self.addClass('dragging')
-				.css({
-					position: 'fixed',
-					top: bcr.y,
-					left: bcr.x
-				})
-				.width(width)
-				.height(height)
-				.detach();
-			Context.append(self);
-			event.preventDefault();
-		}).on('mousemove', function (event) {
-			var draggingElement = document.querySelector('.kanban-list-wrapper.dragging:not(.js-add-column)');
-			var coordinates = {
-				x: event.clientX,
-				y: event.clientY
-			};
-			if (dragstartColumn && draggingElement !== null) {
-				moveColumn(coordinates, draggingElement);
-			}
-		}).on('mouseup', function () {
-			// column drag and drop
-			if (dragstartColumn) {
-				dragstartColumn = false;
-				var draggingElement = $('.kanban-list-wrapper.dragging:not(.js-add-column)');
-				var bcr = columnSubstitute.get(0).getBoundingClientRect()
-				draggingElement.animate({
-					top: bcr.y,
-					left: bcr.x
-				}, {
-					easing: 'easeOutQuad',
-					duration: 250,
-					complete: function () {
-						draggingElement
-							.removeClass('dragging')
-							.css({
-								position: '',
-								top: '',
-								left: '',
-								width: '',
-								height: ''
-							});
-						columnSubstitute
-							.after(draggingElement)
-							.detach();
-						if (typeof _dragAndDropManager.onColumnDrop === 'function')
-							_dragAndDropManager.onColumnDrop(draggingElement);
-						bindDragAndDropEvents(Context, _dragAndDropManager);
-					}
+				var wrapperDom = $(this).parents('.kanban-list-wrapper').prev('.kanban-list-wrapper');
+				createColumnAfter(wrapperDom);
+			}).on('click', '.column-header-text', function () {
+				KANBAN.trigger('click');
+				var self = $(this);
+				var wrapperDom = self.parents('.kanban-list-wrapper');
+				if (typeof SETTINGS.onEditHeaderAction === 'function') {
+					SETTINGS.onEditHeaderAction(wrapperDom.data('column'));
+				}
+				if (!SETTINGS.canEditHeader || !self.parents('.kanban-list-header').data('editable')) {
+					return true;
+				}
+				var headerEditorDom = self.next('.column-header-editor');
+				self.hide();
+				headerEditorDom.css('display', 'inline-block');
+				headerEditorDom.focus();
+				headerEditorDom.select();
+			}).on('click', '.contributor-info', function () {
+				var self = $(this);
+				if (typeof SETTINGS.onContributorClick === 'function') {
+					SETTINGS.onContributorClick(self.data());
+				}
+			}).on('click', function (event) {
+				var activeDropdownDomList = KANBAN.find('.dropdown-list.open');
+				var visibleHeaderEditor = KANBAN.find('.column-header-editor').filter(function () {
+					return $(this).is(':visible');
 				});
-			}
-			// column drag and drop
-		});
+				if (activeDropdownDomList.length && $(event.target).parents('.kanban-action-dropdown').length === 0) {
+					activeDropdownDomList.removeClass('open');
+				}
+				var cancelWhenClass = ['column-header-text', 'column-header-editor', 'dropdown-item', 'kanban-new-column'];
+				if (visibleHeaderEditor.length && cancelWhenClass.every(function (oneClass) { return !$(event.target).hasClass(oneClass) })) {
+					var column = visibleHeaderEditor.parents('.kanban-list-wrapper').data('column').toString();
+					var headerIndex = SETTINGS.headers.findIndex(function (oneHeader) {
+						return oneHeader.id === column;
+					});
+					SETTINGS.headers[headerIndex].label = visibleHeaderEditor.val();
+					var labelDom = visibleHeaderEditor.prev('.column-header-text');
+					var values = { old: labelDom.text(), new: visibleHeaderEditor.val() };
+					visibleHeaderEditor.css('display', '');
+					labelDom.text(visibleHeaderEditor.val()).css('display', '');
+					if (typeof SETTINGS.onHeaderChange === 'function')
+						SETTINGS.onHeaderChange({ column: column, values: values });
+				}
+			}).on('keydown', '.card-composer', function (event) {
+				if (event.originalEvent.key === 'Enter') {
+					event.preventDefault();
+					$(this).find('.js-add-card').trigger('click');
+				}
+			}).on('keydown', '.column-header-editor', function (event) {
+				if (event.originalEvent.key === 'Enter') {
+					KANBAN.trigger('click');
+				}
+			}).on('mousedown', '.kanban-list-wrapper:not(.js-add-column)', function (event) {
+				var bcr = this.getBoundingClientRect();
+				diffX = event.clientX - bcr.x;
+				diffY = event.clientY - bcr.y;
+			}).on('dragstart', '.kanban-list-wrapper:not(.js-add-column)', function (event) {
+				var self = $(this);
+				event.stopPropagation();
+				var bcr = this.getBoundingClientRect();
+				outerWidth = self.outerWidth();
+				outerHeight = self.find('.kanban-list-content').outerHeight();
+				width = self.width();
+				height = self.height();
+				dragstartColumn = true;
+
+				columnSubstitute.css({
+					minWidth: outerWidth - 4,
+					width: outerWidth - 4,
+					height: outerHeight - 4
+				});
+				self.before(columnSubstitute);
+				self.addClass('dragging')
+					.css({
+						position: 'fixed',
+						top: bcr.y,
+						left: bcr.x
+					})
+					.width(width)
+					.height(height)
+					.detach();
+				KANBAN.append(self);
+				event.preventDefault();
+			}).on('mousemove', function (event) {
+				var draggingElement = document.querySelector('.kanban-list-wrapper.dragging:not(.js-add-column)');
+				var coordinates = {
+					x: event.clientX,
+					y: event.clientY
+				};
+				if (dragstartColumn && draggingElement !== null) {
+					moveColumn(coordinates, draggingElement);
+				}
+			}).on('mouseup', function () {
+				// column drag and drop
+				if (dragstartColumn) {
+					dragstartColumn = false;
+					var draggingElement = $('.kanban-list-wrapper.dragging:not(.js-add-column)');
+					var bcr = columnSubstitute.get(0).getBoundingClientRect()
+					draggingElement.animate({
+						top: bcr.y,
+						left: bcr.x
+					}, {
+						easing: 'easeOutQuad',
+						duration: 250,
+						complete: function () {
+							draggingElement
+								.removeClass('dragging')
+								.css({
+									position: '',
+									top: '',
+									left: '',
+									width: '',
+									height: ''
+								});
+							columnSubstitute
+								.after(draggingElement)
+								.detach();
+							if (typeof _dragAndDropManager.onColumnDrop === 'function')
+								_dragAndDropManager.onColumnDrop(draggingElement);
+							bindDragAndDropEvents(_dragAndDropManager);
+						}
+					});
+				}
+				// column drag and drop
+			});
 		$(document).on('mousemove', function (event) {
 			var coordinates = {
 				x: event.clientX,
 				y: event.clientY
 			};
-			if (dragstartColumn && !isPointerInsideOf(Context.get(0), coordinates)) {
-				Context.trigger('mouseup');
+			if (dragstartColumn && !isPointerInsideOf(KANBAN.get(0), coordinates)) {
+				KANBAN.trigger('mouseup');
 			}
 		})
 
@@ -1680,7 +1669,7 @@
 		}
 
 		function checkColumnSubstitutePosition(position) {
-			var containerDom = Context.find('.kanban-container').length ? Context.find('.kanban-container').get(0) : null;
+			var containerDom = KANBAN.find('.kanban-container').length ? KANBAN.find('.kanban-container').get(0) : null;
 			if (containerDom === null || !isPointerInsideOf(containerDom, position)) {
 				return true;
 			}
@@ -1720,7 +1709,7 @@
 			self.empty();
 			$('.card-composer').remove();
 			$('.kanban-list-card-detail[data-column]:hidden').css('display', '');
-			Context.css('overflow-x', '');
+			KANBAN.css('overflow-x', '');
 		}).on('click', '.js-add-card', addCardClicked).on('keydown', '.card-composer', function (event) {
 			if (event.originalEvent.key === 'Enter') {
 				event.preventDefault();
@@ -1733,16 +1722,16 @@
 		}
 	}
 
-	function initKanban(Context) {
-		Context.empty().html('');
-		Context.append($('<div>', {
+	function initKanban() {
+		KANBAN.empty().html('');
+		KANBAN.append($('<div>', {
 			'class': 'kanban-container'
 		}));
 		if (SETTINGS.language === 'en') {
-			loadKanban(Context);
+			loadKanban();
 		} else {
 			loadTranslation(SETTINGS.language, SETTINGS.endpoint ? SETTINGS.endpoint : null).then(function () {
-				loadKanban(Context);
+				loadKanban();
 			});
 		}
 	}
@@ -1817,14 +1806,14 @@
 							oldCardDom.after(buildCard(data));
 							oldCardDom.remove();
 						}
-						bindDragAndDropEvents(Self, _dragAndDropManager);
+						bindDragAndDropEvents(_dragAndDropManager);
 						if (typeof SETTINGS.onRenderDone === 'function')
 							SETTINGS.onRenderDone();
 					}
 					break;
 				case 'addData':
 					var dataToAdd = Array.isArray(argument) ? argument : [argument];
-					addData(Self, dataToAdd);
+					addData(dataToAdd);
 					matrix = KANBAN.data('matrix');
 					filter = KANBAN.data('filter');
 					matrix = filterMatrixBy(matrix, filter);
@@ -1836,13 +1825,13 @@
 							KANBAN.find('#kanban-wrapper-' + datumLoop.header + ' .kanban-list-cards').append(buildCard(matrix[datumLoop.header][index]));
 						}
 					});
-					update_action_count.call(Self);
-					bindDragAndDropEvents(Self, _dragAndDropManager);
+					update_action_count();
+					bindDragAndDropEvents(_dragAndDropManager);
 					if (typeof SETTINGS.onRenderDone === 'function')
 						SETTINGS.onRenderDone();
 					break;
 				case 'deleteData':
-					var deletedId = deleteData(Self, argument);
+					var deletedId = deleteData(argument);
 					matrix = KANBAN.data('matrix');
 					filter = KANBAN.data('filter');
 					matrix = filterMatrixBy(matrix, filter);
@@ -1852,10 +1841,10 @@
 							createCardDom.find('.card-action').tooltip('destroy');
 						createCardDom.remove();
 						if (typeof argument === 'object' && argument && argument.column)
-							update_action_count.call(Self, argument.column, filter);
+							update_action_count(argument.column, filter);
 						else
-							update_action_count.call(Self, null, filter);
-						bindDragAndDropEvents(Self, _dragAndDropManager);
+							update_action_count(null, filter);
+						bindDragAndDropEvents(_dragAndDropManager);
 						if (typeof SETTINGS.onRenderDone === 'function')
 							SETTINGS.onRenderDone();
 					}
@@ -1883,7 +1872,7 @@
 					return ({});
 					break;
 
-				case 'addColumn': 
+				case 'addColumn':
 					addColumnAfter(argument.dom, argument.column);
 					break;
 				case 'filter':
@@ -1891,8 +1880,8 @@
 					matrix = $.extend({}, KANBAN.data('matrix'));
 					KANBAN.data('filter', filter);
 					matrix = filterMatrixBy(matrix, filter);
-					buildCards(Self, matrix);
-					bindDragAndDropEvents(Self, _dragAndDropManager);
+					buildCards(matrix);
+					bindDragAndDropEvents(_dragAndDropManager);
 					if (typeof SETTINGS.onRenderDone === 'function') {
 						SETTINGS.onRenderDone();
 					}
@@ -1915,11 +1904,11 @@
 						createCardDom.hide();
 					} else
 						argument.position = typeof argument.position === 'number' ? argument.position : matrix[argument.target].length;
-					moveCard(Self, createCardDom, argument.target, argument.position);
+					moveCard(createCardDom, argument.target, argument.position);
 					_dragAndDropManager.onCardDrop(createCardDom, typeof argument.notify === 'boolean' ? argument.notify : false);
 					break;
 				case 'destroy':
-					if (typeof SETTINGS.onDestroy === 'function')
+					if (SETTINGS && typeof SETTINGS.onDestroy === 'function')
 						SETTINGS.onDestroy();
 					KANBAN.removeClass('kanban-initialized');
 					KANBAN.removeData();
@@ -1928,7 +1917,7 @@
 			}
 		}
 		W.addEventListener('resize', function () {
-			mediaQueryAndMaxWidth(Self, 770);
+			mediaQueryAndMaxWidth(770);
 		});
 		return this;
 	};
